@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 # import matplotlib
 # matplotlib.use('GTKAgg')
 import random
+import cv2
 
 
 class ImageData(object):
@@ -184,22 +185,22 @@ class ImageAndPriorData(ImageData):
             label_path = os.path.join(self.label_dir, self.image_names[index] + self.label_suffix)
             prior_path = os.path.join(self.prior_dir, self.image_names[index] + self.label_suffix)
 
-            print label_path
+            # print label_path
 
-            image = Image.open(image_path)
-            label = Image.open(label_path)
-            prior = Image.open(prior_path)
-            image = image.resize([self.image_size, self.image_size])
-            label = label.resize([self.image_size, self.image_size])
-            prior = prior.resize([self.image_size, self.image_size])
+            image = cv2.imread(image_path)
+            label = cv2.imread(label_path, 0)
+            prior = cv2.imread(prior_path, 0)
+            image = cv2.resize(image, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+            label = cv2.resize(label, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+            prior = cv2.resize(prior, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
 
-            x = np.array(image, dtype=np.float32)
+            x = image.astype(dtype=np.float32)
             x = self._preprocess(x)
-            prior_arr = np.array(prior, dtype=np.float32)
+            prior_arr = prior.astype(dtype=np.float32)
             input = np.zeros([self.image_size, self.image_size, 4], dtype=np.float32)
             input[:, :, :3] = x
             input[:, :, 3] = prior_arr
-            y = np.array(label, dtype=np.float32)
+            y = label.astype(dtype=np.float32)
             y /= 255
             y = y.astype(np.uint8)
             y = y.reshape((y.shape[0], y.shape[1], 1))

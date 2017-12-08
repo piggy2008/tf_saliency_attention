@@ -242,6 +242,7 @@ class DCL(object):
         save_path = 'tempImages'
         time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
+        mae = 10.0
         for itr in xrange(30000):
             x, y = dataset.next_batch()
             feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
@@ -254,8 +255,11 @@ class DCL(object):
                 summary_writer.add_summary(summary_str, itr)
 
             if itr % 100 == 0:
-                mae = self.evaluate(validate_x, validate_y)
-                print 'during training MAE: ', mae
+                mae_tmp = self.evaluate(validate_x, validate_y)
+                if mae > mae_tmp:
+                    mae = mae_tmp
+                    self.save('best', time_str)
+                print 'during training MAE: ', mae_tmp
 
             if itr % 2000 == 0:
 
