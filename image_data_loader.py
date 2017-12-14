@@ -252,6 +252,124 @@ class ImageAndPriorData(ImageData):
 
             return batch_x, batch_y
 
+class ImageAndPriorSeqData(ImageData):
+    def __init__(self, image_dir, label_dir, prior_dir, validate_image_dir, validate_label_dir, validate_prior_dir,
+                 image_names, validate_names, image_suffix, label_suffix,
+                 image_size, crop_size, batch_size, seq_size, horizontal_flip=False):
+        self.image_dir = image_dir
+        self.label_dir = label_dir
+        self.prior_dir = prior_dir
+        self.image_suffix = image_suffix
+        self.label_suffix = label_suffix
+        self.image_size = image_size
+        self.crop_size = crop_size
+        self.seq_size = seq_size
+        self.horizontal_flip = horizontal_flip
+        self.batch_size = batch_size
+        self.validate_image_dir = validate_image_dir
+        self.validate_label_dir = validate_label_dir
+        self.validate_prior_dir = validate_prior_dir
+        self.image_names = image_names
+        self.validate_names = validate_names
+        self._load_image_name()
+        self._reset_batch_offset()
+        random.shuffle(self.image_names)
+
+    def _load_image_name(self):
+        self.num_of_image = len(self.image_names)
+
+    def next_batch(self):
+        start = self.batch_offset
+        self.batch_offset += self.batch_size
+        if self.batch_offset > self.num_of_image:
+            random.shuffle(self.image_names)
+            start = 0
+            self.batch_offset = self.batch_size
+
+        end = self.batch_offset
+        # print start, '---', end
+        if self.crop_size:
+            batch_x = np.zeros([self.seq_size, self.crop_size, self.crop_size, 4])
+            batch_y = np.zeros([self.seq_size, self.crop_size, self.crop_size, 1])
+        else:
+            batch_x = np.zeros([self.seq_size, self.image_size, self.image_size, 4])
+            batch_y = np.zeros([self.seq_size, self.image_size, self.image_size, 1])
+        count = 0
+        for index in range(start, end):
+            # print label_path
+            images_path = self.image_names[index].split(',')
+
+            for image_name in images_path:
+                image_path = os.path.join(self.image_dir, image_name + self.image_suffix)
+                label_path = os.path.join(self.label_dir, image_name + self.label_suffix)
+                prior_path = os.path.join(self.prior_dir, image_name + self.label_suffix)
+
+                image = cv2.imread(image_path)
+                label = cv2.imread(label_path, 0)
+                prior = cv2.imread(prior_path, 0)
+
+                image = cv2.resize(image, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+                label = cv2.resize(label, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+                prior = cv2.resize(prior, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+
+                x = image.astype(dtype=np.float32)
+                x = self._preprocess(x)
+                prior_arr = prior.astype(dtype=np.float32)
+                input = np.zeros([self.image_size, self.image_size, 4], dtype=np.float32)
+                input[:, :, :3] = x
+                input[:, :, 3] = prior_arr
+                y = label.astype(dtype=np.float32)
+                y /= 255
+                y = y.astype(np.uint8)
+                y = y.reshape((y.shape[0], y.shape[1], 1))
+                if self.crop_size:
+                    input, y = self._crop_image(input, y, (self.crop_size, self.crop_size))
+                if self.horizontal_flip:
+                    input, y = self._flip_image(input, y)
+
+                batch_x[count] = input
+                batch_y[count] = y
+                count += 1
+
+        return batch_x, batch_y
+
+    def get_validate_images(self):
+        if self.validate_image_dir and self.validate_label_dir:
+            image_size = len(self.validate_names)
+            batch_x = np.zeros([image_size, self.crop_size, self.crop_size, 4])
+            batch_y = np.zeros([image_size, self.crop_size, self.crop_size, 1])
+            count = 0
+            for image_name in self.validate_names:
+
+                image_path = os.path.join(self.validate_image_dir, image_name + self.image_suffix)
+                label_path = os.path.join(self.validate_label_dir, image_name + self.label_suffix)
+                prior_path = os.path.join(self.validate_prior_dir, image_name + self.label_suffix)
+
+                image = Image.open(image_path)
+                label = Image.open(label_path)
+                prior = Image.open(prior_path)
+
+                image = image.resize([self.crop_size, self.crop_size])
+                label = label.resize([self.crop_size, self.crop_size])
+                prior = prior.resize([self.crop_size, self.crop_size])
+
+                x = np.array(image, dtype=np.float32)
+                x = self._preprocess(x)
+                prior_arr = np.array(prior, dtype=np.float32)
+                input = np.zeros([self.crop_size, self.crop_size, 4], dtype=np.float32)
+                input[:, :, :3] = x
+                input[:, :, 3] = prior_arr
+
+                y = np.array(label, dtype=np.float32)
+                y /= 255
+                y = y.reshape((y.shape[0], y.shape[1], 1))
+
+                batch_x[count] = input
+                batch_y[count] = y
+                count += 1
+
+            return batch_x, batch_y
+
 
 
 if __name__ == '__main__':
@@ -259,7 +377,7 @@ if __name__ == '__main__':
     image_dir = '/home/ty/data/davis/480p'
     label_dir = '/home/ty/data/davis/GT'
     prior_dir = '/home/ty/data/davis/davis_flow_prior'
-    davis_file = open('/home/ty/data/davis/davis_file.txt')
+    davis_file = open('/home/ty/data/davis/davis_seq_file.txt')
     image_names = [line.strip() for line in davis_file]
 
     validate_dir = '/home/ty/data/FBMS/FBMS_Testset2'
@@ -268,15 +386,17 @@ if __name__ == '__main__':
     FBMS_file = open('/home/ty/data/FBMS/FBMS_file.txt')
     validate_names = [line.strip() for line in FBMS_file]
     # dataset = ImageData(image_dir, label_dir, '.jpg', '.png', 550, 512, 1, horizontal_flip=True)
-    dataset = ImageAndPriorData(image_dir, label_dir, prior_dir, validate_dir, validate_label_dir, validate_prior_dir,
-                                image_names, validate_names, '.jpg', '.png', 550, 512, 2, horizontal_flip=False)
+    dataset = ImageAndPriorSeqData(image_dir, label_dir, prior_dir, validate_dir, validate_label_dir, validate_prior_dir,
+                                image_names, validate_names, '.jpg', '.png', 550, 512, 1, 4, horizontal_flip=False)
 
-    validate_x, validate_y = dataset.get_validate_images()
-    for i in range(0, 10000):
-        x, y = dataset.next_batch()
-        print i
-        print x.shape
-        print y.shape
+    x, y = dataset.next_batch()
+
+    # validate_x, validate_y = dataset.get_validate_images()
+    # for i in range(0, 10000):
+    #     x, y = dataset.next_batch()
+    #     print i
+    print x.shape
+    print y.shape
     # print np.unique(y)
     # plt.subplot(1, 3, 1)
     # plt.imshow(x[0, :, :, :3].astype(np.uint8))
