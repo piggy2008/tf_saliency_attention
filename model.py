@@ -32,11 +32,17 @@ def resize_image_prior(image, prior, max_shape=510):
 
 class DCL(object):
 
-    def __init__(self, sess, batch_size, lr=0.0001, ckpt_dir='./parameters'):
+    def __init__(self, sess, batch_size, lr=0.001, ckpt_dir='./parameters'):
         self.sess = sess
         self.ckpt_dir = ckpt_dir
         self.lr = lr
         self.batch_size = batch_size
+
+        self.rnn_conv_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 1, 1]), dtype=tf.float32,
+                                               name='pool4rnn_conv_w')
+        self.rnn_conv_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32,
+                                               name='pool4rnn_conv_b')
+
         self.build_static_rnn()
         # self.build_ST()
         # self.build_ST_RNN()
@@ -58,10 +64,10 @@ class DCL(object):
         inputs = tf.split(input_tensor, num_or_size_splits=input_tensor.get_shape()[0], axis=0)
         reuse = False
 
-        rnn_conv_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 1, 1]), dtype=tf.float32, name=name + 'rnn_conv_w')
-        rnn_conv_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32, name=name + 'rnn_conv_b')
+
         outputs = []
         outputs_sq = []
+        weights = []
         for i, input in enumerate(inputs):
             if i == 0:  # initialize the hidden state to be the zero vector
                 hiddenState_prev = tf.zeros((1, input.get_shape()[1], input.get_shape()[2], input.get_shape()[3]))
@@ -72,14 +78,15 @@ class DCL(object):
                 w = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.truncated_normal_initializer())
                 b = tf.get_variable('b', shape=[1, 1, 1, 1], initializer=tf.truncated_normal_initializer())
                 h_current = tf.nn.conv2d(hiddenState_prev, w, strides=[1, 1, 1, 1], padding='SAME') + b
-                input_current = tf.nn.conv2d(input, rnn_conv_variable_w, strides=[1, 1, 1, 1], padding='SAME') + rnn_conv_variable_b
+                input_current = tf.nn.conv2d(input, self.rnn_conv_variable_w, strides=[1, 1, 1, 1], padding='SAME') + self.rnn_conv_variable_b
                 hiddenState = tf.add(h_current, input_current)
+                weights.append(w)
 
             outputs.append(hiddenState)
             outputs_sq.append(tf.squeeze(hiddenState, 0))
             reuse = True
 
-        return tf.stack(outputs_sq, axis=0)
+        return tf.stack(outputs_sq, axis=0), weights
 
 
     def build_ST_RNN(self):
@@ -380,12 +387,13 @@ class DCL(object):
         pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
         pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
 
-        rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
+        rnn_output_pool4, weights = self.rnn_cell(pool4_ms_saliency, 'pool4')
         pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
 
         up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [512, 512])
         final_saliency = tf.add(up_pool4, up_fc8)
 
+        self.weight = weights
         self.final_saliency = tf.sigmoid(final_saliency)
         self.up_fc8 = up_fc8
         self.rnn_output = rnn_output_pool4
@@ -512,6 +520,7 @@ class DCL(object):
                                        horizontal_flip=False)
 
 
+
         summary_op = tf.summary.merge_all()
 
         summary_writer = tf.summary.FileWriter('logs', self.sess.graph)
@@ -529,8 +538,8 @@ class DCL(object):
             feed_dict = {self.X: x[:, :, :, :3], self.Y: y}
             self.sess.run(self.train_op, feed_dict=feed_dict)
 
-            if itr % 1 == 0:
-                train_loss, saliency, rnn_output, summary_str = self.sess.run([self.loss, self.final_saliency, self.rnn_output, summary_op],
+            if itr % 5 == 0:
+                train_loss, saliency, rnn_output, weights, summary_str = self.sess.run([self.loss, self.final_saliency, self.rnn_output, self.weight, summary_op],
                                                                       feed_dict=feed_dict)
                 print 'step: %d, train_loss:%g' % (itr, train_loss)
                 summary_writer.add_summary(summary_str, itr)
