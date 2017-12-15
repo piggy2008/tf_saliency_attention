@@ -8,6 +8,7 @@ from image_data_loader import ImageData, ImageAndPriorData, ImageAndPriorSeqData
 import os
 import time
 from utils import preprocess
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 def get_conv_weights(weight_shape, sess):
     return math.sqrt(2 / (9.0 * 64)) * sess.run(tf.truncated_normal(weight_shape))
@@ -31,12 +32,14 @@ def resize_image_prior(image, prior, max_shape=510):
 
 class DCL(object):
 
-    def __init__(self, sess, lr=0.000001, ckpt_dir='./parameters'):
+    def __init__(self, sess, batch_size, lr=0.0001, ckpt_dir='./parameters'):
         self.sess = sess
         self.ckpt_dir = ckpt_dir
         self.lr = lr
-        self.build_ST_RNN()
-
+        self.batch_size = batch_size
+        self.build_static_rnn()
+        # self.build_ST()
+        # self.build_ST_RNN()
 
     def conv2d(self, x, w_shape, name):
         w = tf.Variable(tf.truncated_normal(shape=w_shape), dtype=tf.float32, name=name + '_w')
@@ -66,8 +69,8 @@ class DCL(object):
                 hiddenState_prev = outputs[i - 1]
 
             with tf.variable_scope(name + '_rnn', reuse=reuse):
-                w = tf.get_variable('w', shape=[3, 3, 1, 1])
-                b = tf.get_variable('b', shape=[1, 1, 1, 1])
+                w = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.truncated_normal_initializer())
+                b = tf.get_variable('b', shape=[1, 1, 1, 1], initializer=tf.truncated_normal_initializer())
                 h_current = tf.nn.conv2d(hiddenState_prev, w, strides=[1, 1, 1, 1], padding='SAME') + b
                 input_current = tf.nn.conv2d(input, rnn_conv_variable_w, strides=[1, 1, 1, 1], padding='SAME') + rnn_conv_variable_b
                 hiddenState = tf.add(h_current, input_current)
@@ -76,15 +79,13 @@ class DCL(object):
             outputs_sq.append(tf.squeeze(hiddenState, 0))
             reuse = True
 
-
-
         return tf.stack(outputs_sq, axis=0)
 
 
     def build_ST_RNN(self):
-        self.X = tf.placeholder(tf.float32, [4, 512, 512, 3], name='rgb_image')
-        self.X_prior = tf.placeholder(tf.float32, [4, 512, 512, 4], name='rgb_prior_image')
-        self.Y = tf.placeholder(tf.float32, [4, 512, 512, 1], name='gt')
+        self.X = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 3], name='rgb_image')
+        self.X_prior = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 4], name='rgb_prior_image')
+        self.Y = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 1], name='gt')
 
 
         ############### R1 ###############
@@ -115,14 +116,17 @@ class DCL(object):
         fc7_dropout = tf.nn.dropout(fc7, 0.5)
 
         fc8 = self.conv2d(fc7_dropout, [1, 1, 4096, 1], 'fc8')
+        rnn_output_fc8 = self.rnn_cell(fc8, 'fc8')
+        fc8 = tf.add(rnn_output_fc8, fc8)
+
         up_fc8 = tf.image.resize_bilinear(fc8, [512, 512])
 
         pool4_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4, [3, 3, 512, 128], 'pool4_conv')), 0.5)
         pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
         pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
 
-        rnn_output = self.rnn_cell(pool4_ms_saliency, 'pool4')
-        pool4_ms_saliency = tf.add(rnn_output, pool4_ms_saliency)
+        rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
+        pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
 
         up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [512, 512])
         final_saliency_r1 = tf.add(up_pool4, up_fc8)
@@ -339,6 +343,63 @@ class DCL(object):
         grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
         self.train_op = optimizer.apply_gradients(grads)
 
+    def build_static_rnn(self):
+        self.X = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 3], name='rgb_image')
+        self.Y = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 1], name='gt')
+
+        conv1_1 = tf.nn.relu(self.conv2d(self.X, [3, 3, 3, 64], 'conv1_1'))
+        conv1_2 = tf.nn.relu(self.conv2d(conv1_1, [3, 3, 64, 64], 'conv1_2'))
+        pool1 = tf.nn.max_pool(conv1_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+        conv2_1 = tf.nn.relu(self.conv2d(pool1, [3, 3, 64, 128], 'conv2_1'))
+        conv2_2 = tf.nn.relu(self.conv2d(conv2_1, [3, 3, 128, 128], 'conv2_2'))
+        pool2 = tf.nn.max_pool(conv2_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+        conv3_1 = tf.nn.relu(self.conv2d(pool2, [3, 3, 128, 256], 'conv3_1'))
+        conv3_2 = tf.nn.relu(self.conv2d(conv3_1, [3, 3, 256, 256], 'conv3_2'))
+        conv3_3 = tf.nn.relu(self.conv2d(conv3_2, [3, 3, 256, 256], 'conv3_3'))
+        pool3 = tf.nn.max_pool(conv3_3, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool3')
+        conv4_1 = tf.nn.relu(self.conv2d(pool3, [3, 3, 256, 512], 'conv4_1'))
+        conv4_2 = tf.nn.relu(self.conv2d(conv4_1, [3, 3, 512, 512], 'conv4_2'))
+        conv4_3 = tf.nn.relu(self.conv2d(conv4_2, [3, 3, 512, 512], 'conv4_3'))
+        pool4 = tf.nn.max_pool(conv4_3, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME', name='pool4')
+
+        conv5_1 = tf.nn.relu(self.astro_conv2d(pool4, [3, 3, 512, 512], hole=2, name='conv5_1'))
+        conv5_2 = tf.nn.relu(self.astro_conv2d(conv5_1, [3, 3, 512, 512], hole=2, name='conv5_2'))
+        conv5_3 = tf.nn.relu(self.astro_conv2d(conv5_2, [3, 3, 512, 512], hole=2, name='conv5_3'))
+        pool5 = tf.nn.max_pool(conv5_3, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME')
+
+        fc6 = tf.nn.relu(self.astro_conv2d(pool5, [4, 4, 512, 4096], hole=4, name='fc6'))
+        fc6_dropout = tf.nn.dropout(fc6, 0.5)
+
+        fc7 = tf.nn.relu(self.astro_conv2d(fc6_dropout, [1, 1, 4096, 4096], hole=4, name='fc7'))
+        fc7_dropout = tf.nn.dropout(fc7, 0.5)
+
+        fc8 = self.conv2d(fc7_dropout, [1, 1, 4096, 1], 'fc8')
+        up_fc8 = tf.image.resize_bilinear(fc8, [512, 512])
+
+        pool4_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4, [3, 3, 512, 128], 'pool4_conv')), 0.5)
+        pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
+        pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
+
+        rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
+        pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
+
+        up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [512, 512])
+        final_saliency = tf.add(up_pool4, up_fc8)
+
+        self.final_saliency = tf.sigmoid(final_saliency)
+        self.up_fc8 = up_fc8
+        self.rnn_output = rnn_output_pool4
+        self.saver = tf.train.Saver()
+
+
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y), name='loss')
+        tf.summary.scalar('entropy', self.loss)
+
+        optimizer = tf.train.AdamOptimizer(self.lr, name='optimizer')
+        trainable_var = tf.trainable_variables()
+        grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
+        self.train_op = optimizer.apply_gradients(grads)
+
 
 
     def train(self):
@@ -457,19 +518,19 @@ class DCL(object):
         self.init = tf.global_variables_initializer()
 
         self.sess.run(self.init)
-        # self.saver.restore(self.sess, self.ckpt_dir)
+        self.saver.restore(self.sess, self.ckpt_dir)
 
         save_path = 'tempImages'
         time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
         mae = 10.0
-        for itr in xrange(30000):
+        for itr in xrange(10000):
             x, y = dataset.next_batch()
-            feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
+            feed_dict = {self.X: x[:, :, :, :3], self.Y: y}
             self.sess.run(self.train_op, feed_dict=feed_dict)
 
-            if itr % 10 == 0:
-                train_loss, saliency, up, summary_str = self.sess.run([self.loss, self.final_saliency, self.up_fc8, summary_op],
+            if itr % 1 == 0:
+                train_loss, saliency, rnn_output, summary_str = self.sess.run([self.loss, self.final_saliency, self.rnn_output, summary_op],
                                                                       feed_dict=feed_dict)
                 print 'step: %d, train_loss:%g' % (itr, train_loss)
                 summary_writer.add_summary(summary_str, itr)
@@ -493,9 +554,9 @@ class DCL(object):
 
         for name in test_names:
             image = Image.open(os.path.join(test_dir, name + '.jpg'))
-            w, h = image.size
             prior = Image.open(os.path.join(test_prior_dir, name + '.png'))
             image, prior = resize_image_prior(image, prior)
+            w, h = image.size
             input_prior, input = preprocess(image, prior)
             feed_dict = {self.X: input, self.X_prior: input_prior}
             saliency = self.sess.run(self.final_saliency, feed_dict=feed_dict)
@@ -608,7 +669,7 @@ if __name__ == '__main__':
         # dataset = ImageData(image_dir, label_dir, None, None, '.jpg', '.png', 550, 512, 1, horizontal_flip=False)
         # x, y = dataset.next_batch()
 
-        dcl = DCL(sess, ckpt_dir='fusion_parameter/fusionST_tensorflow.ckpt')
+        dcl = DCL(sess, 4, ckpt_dir='DCL_parameter/DCL_tensorflow.ckpt')
         dcl.train_ST_rnn()
         # dcl.test('models/2017-12-10 21:18:26/28000/snap_model.ckpt')
         # dcl.sampler(x)

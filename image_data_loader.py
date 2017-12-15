@@ -158,7 +158,7 @@ class ImageAndPriorData(ImageData):
         self.validate_names = validate_names
         self._load_image_name()
         self._reset_batch_offset()
-        random.shuffle(self.image_names)
+        # random.shuffle(self.image_names)
 
     def _load_image_name(self):
         self.num_of_image = len(self.image_names)
