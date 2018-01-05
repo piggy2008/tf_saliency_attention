@@ -1,7 +1,13 @@
 import os
+from PIL import Image
+import cv2
+import numpy as np
 
-path = '/home/ty/data/davis/davis_flow_prior'
-save_path = '/home/ty/data/davis/davis_seq_file.txt'
+# path = '/home/ty/data/video_saliency/train_all_gt'
+# save_path = '/home/ty/data/video_saliency/train_all_gt2'
+path = '/home/ty/data/davis/davis_test'
+save_path = '/home/ty/data/davis/davis_test_seq.txt'
+# save_path = '/home/ty/data/video_saliency/train_all_seq.txt'
 folders = os.listdir(path)
 file = open(save_path, 'w')
 
@@ -23,7 +29,7 @@ def generate_seq():
     for folder in folders:
         images = os.listdir(os.path.join(path, folder))
         images.sort()
-        for i in range(0, len(images) - batch + 1):
+        for i in range(1, len(images) - batch + 1):
             image_batch = ''
             for j in xrange(batch):
 
@@ -39,4 +45,33 @@ def generate_seq():
 
     file.close()
 
+def change_suffix():
+    for folder in folders:
+        images = os.listdir(os.path.join(path, folder))
+        images.sort()
+        for image in images:
+            img = Image.open(os.path.join(path, folder, image))
+            name, suffix = os.path.splitext(image)
+            if not os.path.exists(os.path.join(save_path, folder)):
+                os.makedirs(os.path.join(save_path, folder))
+            img.save(os.path.join(save_path, folder, name + '.jpg'))
+
+def gt_generate():
+    for folder in folders:
+        images = os.listdir(os.path.join(path, folder))
+        images.sort()
+        for image in images:
+            img = cv2.imread(os.path.join(path, folder, image), 0)
+            img[np.where(img > 100)] = 255
+            img[np.where(img <= 100)] = 0
+            # img[np.where(img == 255)] = 1
+            if not os.path.exists(os.path.join(save_path, folder)):
+                os.makedirs(os.path.join(save_path, folder))
+
+            cv2.imwrite(os.path.join(save_path, folder, image), img)
+
+# generate_one()
+
 generate_seq()
+# change_suffix()
+# generate_seq()

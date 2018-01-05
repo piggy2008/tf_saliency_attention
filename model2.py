@@ -2,14 +2,15 @@ import tensorflow as tf
 import numpy as np
 import math
 from PIL import Image
-from cell import ConvLSTMCell
 import cv2
 from matplotlib import pyplot as plt
 from image_data_loader import ImageData, ImageAndPriorData, ImageAndPriorSeqData
 import os
 import time
 from utils import preprocess
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+from cell import ConvLSTMCell
 
 def get_conv_weights(weight_shape, sess):
     return math.sqrt(2 / (9.0 * 64)) * sess.run(tf.truncated_normal(weight_shape))
@@ -33,13 +34,13 @@ def resize_image_prior(image, prior, max_shape=510):
 
 class DCL(object):
 
-    def __init__(self, sess, batch_size, lr=0.00001, ckpt_dir='./parameters'):
+    def __init__(self, sess, batch_size, lr=0.0001, ckpt_dir='./parameters'):
         self.sess = sess
         self.ckpt_dir = ckpt_dir
         self.lr = lr
         self.batch_size = batch_size
 
-        self.build_ST_RNN()
+        self.build_static_rnn()
         # self.build_ST()
         # self.build_ST_RNN()
 
@@ -60,24 +61,8 @@ class DCL(object):
         inputs = tf.split(input_tensor, num_or_size_splits=input_tensor.get_shape()[0], axis=0)
         reuse = False
 
-        rnn_conv_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 4, 4], stddev=0.01),
-                                          dtype=tf.float32, name=name + 'rnn_conv_w')
-        rnn_conv_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 4]), dtype=tf.float32,
-                                          name=name + 'rnn_conv_b')
-
-        rnn_static_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 4, 1], stddev=0.01), dtype=tf.float32,
-                                            name='static_rnn_output_w')
-        rnn_static_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32,
-                                            name='static_rnn_output_b')
-
-        rnn_dynamic_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 4, 1], stddev=0.01), dtype=tf.float32,
-                                             name='dynamic_rnn_output_w')
-        rnn_dynamic_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32,
-                                             name='dynamic_rnn_output_b')
-
         outputs = []
-        outputs_static_sq = []
-        outputs_dynamic_sq = []
+        outputs_sq = []
         for i, input in enumerate(inputs):
             if i == 0:  # initialize the hidden state to be the zero vector
                 hiddenState_prev = tf.zeros((1, input.get_shape()[1], input.get_shape()[2], input.get_shape()[3]))
@@ -85,28 +70,50 @@ class DCL(object):
                 hiddenState_prev = outputs[i - 1]
 
             with tf.variable_scope(name + '_rnn', reuse=reuse):
-                w = tf.get_variable('w', shape=[3, 3, input.get_shape()[3], input.get_shape()[3]],
-                                    initializer=tf.truncated_normal_initializer())
-                b = tf.get_variable('b', shape=[1, 1, 1, input.get_shape()[3]],
-                                    initializer=tf.truncated_normal_initializer())
+                w = tf.get_variable('w', shape=[3, 3, input.get_shape()[3], input.get_shape()[3]], initializer=tf.truncated_normal_initializer())
+                b = tf.get_variable('b', shape=[1, 1, 1, input.get_shape()[3]], initializer=tf.truncated_normal_initializer())
                 h_current = tf.nn.conv2d(hiddenState_prev, w, strides=[1, 1, 1, 1], padding='SAME') + b
-
-                input_current = tf.nn.conv2d(input, rnn_conv_variable_w, strides=[1, 1, 1, 1],
-                                             padding='SAME') + rnn_conv_variable_b
+                input_current = tf.nn.conv2d(input, self.rnn_conv_variable_w, strides=[1, 1, 1, 1], padding='SAME') + self.rnn_conv_variable_b
                 hiddenState = tf.nn.relu(tf.add(h_current, input_current))
 
-                output_static_temp = tf.nn.conv2d(hiddenState, rnn_static_variable_w, strides=[1, 1, 1, 1],
-                                                  padding='SAME') + rnn_static_variable_b
-
-                output_dynamic_temp = tf.nn.conv2d(hiddenState, rnn_dynamic_variable_w, strides=[1, 1, 1, 1],
-                                                   padding='SAME') + rnn_dynamic_variable_b
+                output_temp = tf.nn.conv2d(hiddenState, self.rnn_output_variable_w, strides=[1, 1, 1, 1],
+                             padding='SAME') + self.rnn_output_variable_b
 
             outputs.append(hiddenState)
-            outputs_static_sq.append(tf.squeeze(output_static_temp, 0))
-            outputs_dynamic_sq.append(tf.squeeze(output_dynamic_temp, 0))
+            outputs_sq.append(tf.squeeze(output_temp, 0))
             reuse = True
 
-        return tf.stack(outputs_static_sq, axis=0), tf.stack(outputs_dynamic_sq, axis=0)
+        return tf.stack(outputs_sq, axis=0)
+
+    def rnn_cell_fc(self, input_tensor, name):
+        inputs = tf.split(input_tensor, num_or_size_splits=input_tensor.get_shape()[0], axis=0)
+        reuse = False
+
+        outputs = []
+        outputs_sq = []
+        for i, input in enumerate(inputs):
+            if i == 0:  # initialize the hidden state to be the zero vector
+                hiddenState_prev = tf.zeros((1, input.get_shape()[1]))
+            else:
+                hiddenState_prev = outputs[i - 1]
+
+            with tf.variable_scope(name + '_rnn', reuse=reuse):
+                w = tf.get_variable('w', shape=[input.get_shape()[1], input.get_shape()[1]],
+                                    initializer=tf.truncated_normal_initializer())
+                b = tf.get_variable('b', shape=[input.get_shape()[1]],
+                                    initializer=tf.truncated_normal_initializer())
+                h_current = tf.matmul(hiddenState_prev, w) + b
+                input_current = tf.matmul(input, self.rnn_input_fc_w) + self.rnn_input_fc_b
+                hiddenState = tf.nn.dropout(tf.nn.relu(tf.add(h_current, input_current)), 0.9)
+
+                output_temp = tf.nn.dropout(tf.matmul(hiddenState, self.rnn_output_fc_w) + self.rnn_output_fc_b, 0.9)
+                output_temp = tf.reshape(output_temp, [1, 64, 64, 1])
+
+            outputs.append(hiddenState)
+            outputs_sq.append(tf.squeeze(output_temp, 0))
+            reuse = True
+
+        return tf.stack(outputs_sq, axis=0)
 
 
     def build_ST_RNN(self):
@@ -143,8 +150,8 @@ class DCL(object):
         fc7_dropout = tf.nn.dropout(fc7, 0.5)
 
         fc8 = self.conv2d(fc7_dropout, [1, 1, 4096, 1], 'fc8')
-        # rnn_output_fc8 = self.rnn_cell(fc8, 'fc8')
-        # fc8 = tf.add(rnn_output_fc8, fc8)
+        rnn_output_fc8 = self.rnn_cell(fc8, 'fc8')
+        fc8 = tf.add(rnn_output_fc8, fc8)
 
         up_fc8 = tf.image.resize_bilinear(fc8, [512, 512])
 
@@ -152,8 +159,8 @@ class DCL(object):
         pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
         pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
 
-        # rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
-        # pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
+        rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
+        pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
 
         up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [512, 512])
         final_saliency_r1 = tf.add(up_pool4, up_fc8)
@@ -193,25 +200,6 @@ class DCL(object):
         up_pool4_r2 = tf.image.resize_bilinear(pool4_ms_saliency_r2, [512, 512])
         final_saliency_r2 = tf.add(up_pool4_r2, up_fc8_r2)
 
-        ########## rnn fusion ############
-
-        # inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2], axis=3), 0)
-        # cell = ConvLSTMCell([512, 512], 1, [3, 3])
-        # outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype, scope='rnn')
-        # rnn_output = tf.squeeze(outputs, axis=0)
-        #
-        # inputs2 = tf.expand_dims(tf.concat([up_fc8, up_fc8_r2], axis=3), 0)
-        # cell2 = ConvLSTMCell([512, 512], 1, [3, 3])
-        # outputs2, state2 = tf.nn.dynamic_rnn(cell2, inputs2, dtype=inputs.dtype, scope='rnn2')
-        # rnn_output2 = tf.squeeze(outputs2, axis=0)
-
-        inputs = tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3)
-
-        outputs_static, outputs_dynamic = self.rnn_cell(inputs, 'rnn')
-
-        attention_static = tf.multiply(tf.add(up_pool4, up_fc8), outputs_static)
-        attention_dynamic = tf.multiply(tf.add(up_pool4_r2, up_fc8_r2), outputs_dynamic)
-        rnn_output = tf.add(attention_static, attention_dynamic)
         ########### ST fusion ############
         pool4_saliency_cancat = tf.concat([pool4_ms_saliency, pool4_ms_saliency_r2], 3, name='concat_pool4')
         pool4_saliency_ST = self.conv2d(pool4_saliency_cancat, [1, 1, 2, 1], 'pool4_saliency_ST')
@@ -222,26 +210,17 @@ class DCL(object):
         up_fc8_ST = tf.image.resize_bilinear(fc8_saliency_ST, [512, 512])
 
         final_saliency = tf.add(up_pool4_ST, up_fc8_ST)
-        # final_saliency = tf.add(final_saliency, up_pool4_r2)
-        # final_saliency = tf.add(final_saliency, up_fc8_r2)
-
-        # final_saliency = tf.add(final_saliency, rnn_output)
-        # final_saliency = tf.add(final_saliency, attention_dynamic)
         self.final_saliency = tf.sigmoid(final_saliency)
         self.up_fc8 = up_fc8
-        self.rnn_output = final_saliency
         self.saver = tf.train.Saver()
 
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y),
                                    name='loss')
-        self.loss_rnn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=rnn_output, labels=self.Y),
-                                   name='loss2')
-        tf.summary.scalar('entropy', self.loss + 1 * self.loss_rnn)
-        # tf.summary.scalar('entropy', self.loss)
+        tf.summary.scalar('entropy', self.loss)
+
         optimizer = tf.train.AdamOptimizer(self.lr, name='optimizer')
         trainable_var = tf.trainable_variables()
-        grads = optimizer.compute_gradients(self.loss + 1 * self.loss_rnn, var_list=trainable_var)
-        # grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
+        grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
         self.train_op = optimizer.apply_gradients(grads)
 
     def build_ST(self):
@@ -431,6 +410,21 @@ class DCL(object):
         fc8 = self.conv2d(fc7_dropout, [1, 1, 4096, 1], 'fc8')
         up_fc8 = tf.image.resize_bilinear(fc8, [512, 512])
 
+        pool1_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool1, [3, 3, 64, 128], 'pool1_conv')), 0.5)
+        pool1_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool1_conv, [1, 1, 128, 128], 'pool1_fc')), 0.5)
+        pool1_ms_saliency = self.conv2d(pool1_fc, [1, 1, 128, 1], 'pool1_ms_saliency')
+        up_pool1 = tf.image.resize_bilinear(pool1_ms_saliency, [512, 512])
+
+        pool2_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool2, [3, 3, 128, 128], 'pool2_conv')), 0.5)
+        pool2_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool2_conv, [1, 1, 128, 128], 'pool2_fc')), 0.5)
+        pool2_ms_saliency = self.conv2d(pool2_fc, [1, 1, 128, 1], 'pool2_ms_saliency')
+        up_pool2 = tf.image.resize_bilinear(pool2_ms_saliency, [512, 512])
+
+        pool3_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3, [3, 3, 256, 128], 'pool3_conv')), 0.5)
+        pool3_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_conv, [1, 1, 128, 128], 'pool3_fc')), 0.5)
+        pool3_ms_saliency = self.conv2d(pool3_fc, [1, 1, 128, 1], 'pool3_ms_saliency')
+        up_pool3 = tf.image.resize_bilinear(pool3_ms_saliency, [512, 512])
+
         pool4_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4, [3, 3, 512, 128], 'pool4_conv')), 0.5)
         pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
         pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
@@ -439,30 +433,66 @@ class DCL(object):
         self.pool4_ms_saliency = pool4_ms_saliency
 
         ########### rnn cell parameter ##############
-        self.rnn_conv_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 2, 2]), dtype=tf.float32,
-                                               name='pool4_rnn_conv_w')
-        self.rnn_conv_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 2]), dtype=tf.float32,
-                                               name='pool4_rnn_conv_b')
+        # self.rnn_conv_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 2, 2]), dtype=tf.float32,
+        #                                        name='pool4_rnn_conv_w')
+        # self.rnn_conv_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 2]), dtype=tf.float32,
+        #                                        name='pool4_rnn_conv_b')
+        #
+        # self.rnn_output_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 2, 1]), dtype=tf.float32,
+        #                                          name='pool4_rnn_output_w')
+        # self.rnn_output_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32,
+        #                                          name='pool4_rnn_output_b')
 
-        self.rnn_output_variable_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 2, 1]), dtype=tf.float32,
-                                                 name='pool4_rnn_output_w')
-        self.rnn_output_variable_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32,
-                                                 name='pool4_rnn_output_b')
+        # self.rnn_input_fc_w = tf.Variable(tf.truncated_normal(shape=[64 * 64 * 2, 64 * 64 * 2], stddev=0.001),
+        #                              dtype=tf.float32,
+        #                              name='pool4_rnn_input_w')
+        # self.rnn_input_fc_b = tf.Variable(tf.truncated_normal(shape=[64 * 64 * 2], stddev=0.001), dtype=tf.float32,
+        #                              name='pool4_rnn_input_b')
+        #
+        # self.rnn_output_fc_w = tf.Variable(tf.truncated_normal(shape=[64 * 64 * 2, 64 * 64 * 1], stddev=0.001),
+        #                               dtype=tf.float32,
+        #                               name='pool4_rnn_output_w')
+        # self.rnn_output_fc_b = tf.Variable(tf.truncated_normal(shape=[64 * 64 * 1], stddev=0.001), dtype=tf.float32,
+        #                               name='pool4_rnn_output_b')
+
         # rnn_pool4 = self.rnn_cell(pool4_conv, 'pool4')
         # rnn_pool4_fc = tf.nn.relu(self.conv2d(rnn_pool4, [1, 1, 128, 128], 'rnn_pool4_fc'))
         # rnn_pool4_saliency = self.conv2d(rnn_pool4_fc, [1, 1, 128, 1], 'rnn_pool4_saliency')
         # up_rnn_pool4 = tf.image.resize_bilinear(rnn_pool4_saliency, [512, 512])
-        rnn_pool4_fc8 = self.rnn_cell(tf.concat([up_pool4, up_fc8], axis=3), 'pool4_fc8')
+        # rnn_pool4_fc8 = self.rnn_cell(tf.concat([up_pool4, up_fc8], axis=3), 'pool4_fc8')
         # up_rnn = tf.image.resize_bilinear(rnn_pool4_fc8, [512, 512])
-
         # rnn_fc8 = self.rnn_cell(up_fc8, 'fc8')
         # up_rnn = tf.image.resize_bilinear(rnn_pool4_fc8, [512, 512])
 
+        # inputs = tf.reshape(tf.concat([pool4_ms_saliency, fc8], axis=3), [4, 64 * 64 * 2])
+        # rnn_output = self.rnn_cell_fc(inputs, 'pool4')
+        # up_rnn = tf.image.resize_bilinear(rnn_output, [512, 512])
+
+        # inputs = tf.expand_dims(tf.concat([up_pool4, up_fc8], axis=3), 0)
+        # cell = ConvLSTMCell([512, 512], 1, [3, 3])
+        # outputs, state = tf.nn.bidirectional_dynamic_rnn(cell, cell, inputs, dtype=inputs.dtype)
+        # rnn_output_pos = tf.squeeze(outputs[0], axis=0)
+        # rnn_output_rev = tf.squeeze(outputs[1], axis=0)
+
+        # inputs_pool4 = tf.expand_dims(tf.concat([up_pool3, up_pool4], axis=3), 0)
+        # cell_pool4 = ConvLSTMCell([512, 512], 1, [3, 3])
+        # outputs_pool4, state = tf.nn.dynamic_rnn(cell_pool4, inputs_pool4, dtype=inputs_pool4.dtype, scope='pool3_rnn')
+        # rnn_output_pool4 = tf.squeeze(outputs_pool4, axis=0)
+        #
+        # inputs_fc8 = tf.expand_dims(tf.concat([up_pool4, up_fc8], axis=3), 0)
+        # cell_fc8 = ConvLSTMCell([512, 512], 1, [3, 3])
+        # outputs_fc8, state = tf.nn.dynamic_rnn(cell_fc8, inputs_fc8, dtype=inputs_fc8.dtype, scope='pool4_rnn')
+        # rnn_output_fc8 = tf.squeeze(outputs_fc8, axis=0)
+
         final_saliency = tf.add(up_pool4, up_fc8)
-        final_saliency = tf.add(final_saliency, rnn_pool4_fc8)
+        final_saliency = tf.add(final_saliency, up_pool3)
+        final_saliency = tf.add(final_saliency, up_pool2)
+        final_saliency = tf.add(final_saliency, up_pool1)
+        # final_saliency = tf.add(final_saliency, rnn_output_pool4)
+        # final_saliency = tf.add(final_saliency, rnn_output_fc8)
         self.final_saliency = tf.sigmoid(final_saliency)
 
-        self.rnn_output = rnn_pool4_fc8
+        self.rnn_output = final_saliency
         self.saver = tf.train.Saver()
 
 
@@ -471,8 +501,8 @@ class DCL(object):
 
         trainable_layer_len = 28
 
-        optimizer1 = tf.train.AdamOptimizer(self.lr * 0.0001, name='optimizer')
-        optimizer2 = tf.train.AdamOptimizer(self.lr, name='optimizer')
+        optimizer1 = tf.train.AdamOptimizer(self.lr, name='optimizer1')
+        optimizer2 = tf.train.AdamOptimizer(self.lr, name='optimizer2')
         trainable_var = tf.trainable_variables()
         grads = tf.gradients(self.loss, trainable_var)
         grads1 = grads[:trainable_layer_len]
@@ -591,6 +621,8 @@ class DCL(object):
                                        image_names, validate_names, '.jpg', '.png', 550, 512, 1, 4,
                                        horizontal_flip=False)
 
+
+
         summary_op = tf.summary.merge_all()
 
         summary_writer = tf.summary.FileWriter('logs', self.sess.graph)
@@ -603,23 +635,23 @@ class DCL(object):
         time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
         mae = 10.0
-        for itr in xrange(26001):
+        for itr in xrange(16001):
             x, y = dataset.next_batch()
-            feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
-            train_loss, saliency, up_fc8, rnn_output, summary_str = self.sess.run(
-                [self.loss, self.final_saliency, self.up_fc8, self.rnn_output, summary_op],
+            feed_dict = {self.X: x[:, :, :, :3], self.Y: y}
+            train_loss, saliency, pool4_ms_saliency, rnn_output, summary_str = self.sess.run(
+                [self.loss, self.final_saliency, self.pool4_ms_saliency, self.rnn_output, summary_op],
                 feed_dict=feed_dict)
 
             self.sess.run(self.train_op, feed_dict=feed_dict)
 
             if itr % 5 == 0:
-                train_loss, saliency, rnn_output, summary_str = self.sess.run(
-                    [self.loss, self.final_saliency, self.rnn_output, summary_op],
-                    feed_dict=feed_dict)
+                train_loss, saliency, rnn_output, summary_str = self.sess.run([self.loss, self.final_saliency, self.rnn_output, summary_op],
+                                                                      feed_dict=feed_dict)
                 print 'step: %d, train_loss:%g' % (itr, train_loss)
                 summary_writer.add_summary(summary_str, itr)
 
             if itr % 2000 == 0:
+
                 self.save(str(itr), time_str)
 
 
@@ -663,10 +695,10 @@ class DCL(object):
         FBMS_file = open('/home/ty/data/FBMS/FBMS_seq_file.txt')
         test_names = [line.strip() for line in FBMS_file]
 
-        # test_dir = '/home/ty/data/davis/davis_test'
+        # test_dir = '/home/ty/data/SegTrack/SegTrackv2'
         # # test_label_dir = '/home/ty/data/FBMS/GT_no_first'
-        # test_prior_dir = '/home/ty/data/davis/davis_flow_prior'
-        # FBMS_file = open('/home/ty/data/davis/davis_test_seq.txt')
+        # test_prior_dir = '/home/ty/data/SegTrack/SegTrackv2_flow_prior'
+        # FBMS_file = open('/home/ty/data/SegTrack/SegTrack_seq_file.txt')
         # test_names = [line.strip() for line in FBMS_file]
 
         save_path = 'total_result/result_rnn'
@@ -689,9 +721,8 @@ class DCL(object):
                 input_prior, input = preprocess(image, prior)
 
                 batch_x_no_prior[i] = input
-                batch_x[i] = input_prior
 
-            feed_dict = {self.X: batch_x_no_prior, self.X_prior: batch_x}
+            feed_dict = {self.X: batch_x_no_prior}
             saliency = self.sess.run(self.final_saliency, feed_dict=feed_dict)
 
             saliency = saliency * 255
@@ -800,17 +831,16 @@ if __name__ == '__main__':
         # dataset = ImageData(image_dir, label_dir, None, None, '.jpg', '.png', 550, 512, 1, horizontal_flip=False)
         # x, y = dataset.next_batch()
         # parameter_path = 'models/2017-12-15 21:24:21/28000/snap_model.ckpt'
-        # parameter_path = 'models/2017-12-26 09:46:30/26000/snap_model.ckpt'
-        # parameter_path = 'models/2017-12-22 21:21:16/8000/snap_model.ckpt' #### best
-        parameter_path = 'models/2017-12-29 19:12:10/10000/snap_model.ckpt'
-        # parameter_path = 'fusion_parameter/fusionST_tensorflow.ckpt'
+        # parameter_path = 'models/2017-12-16 22:49:43/28000/snap_model.ckpt'
+        parameter_path = 'models/2017-12-27 15:13:45/16000/snap_model.ckpt'
+        # parameter_path = 'DCL_parameter/DCL_tensorflow_all_pool.ckpt'
         dcl = DCL(sess, 4, ckpt_dir=parameter_path)
-        dcl.train_ST_rnn()
-        # dcl.test_seq(parameter_path)
+        # dcl.train_ST_rnn()
+        dcl.test_seq(parameter_path)
         # dcl.test('models/2017-12-10 21:18:26/28000/snap_model.ckpt')
         # dcl.sampler(x)
         # dcl.load()
-        # r = dcl.forward(x)f
+        # r = dcl.forward(x)
         # plt.imshow(r[0, :, :, 0])
         # plt.show()
         #
