@@ -372,4 +372,54 @@ class ImageAndPriorSeqData(ImageData):
 
 
 
+if __name__ == '__main__':
 
+    image_dir = '/home/ty/data/davis/480p'
+    label_dir = '/home/ty/data/davis/GT'
+    prior_dir = '/home/ty/data/davis/davis_flow_prior'
+    davis_file = open('/home/ty/data/davis/davis_seq_file.txt')
+    image_names = [line.strip() for line in davis_file]
+
+    validate_dir = '/home/ty/data/FBMS/FBMS_Testset2'
+    validate_label_dir = '/home/ty/data/FBMS/GT_no_first'
+    validate_prior_dir = '/home/ty/data/FBMS/FBMS_Testset_flow_prior'
+    FBMS_file = open('/home/ty/data/FBMS/FBMS_file.txt')
+    validate_names = [line.strip() for line in FBMS_file]
+    # dataset = ImageData(image_dir, label_dir, '.jpg', '.png', 550, 512, 1, horizontal_flip=True)
+    dataset = ImageAndPriorSeqData(image_dir, label_dir, prior_dir, validate_dir, validate_label_dir, validate_prior_dir,
+                                image_names, validate_names, '.jpg', '.png', 550, 512, 1, 4, horizontal_flip=False)
+
+    x, y = dataset.next_batch()
+
+    # validate_x, validate_y = dataset.get_validate_images()
+    # for i in range(0, 10000):
+    #     x, y = dataset.next_batch()
+    #     print i
+    print x.shape
+    print y.shape
+    # print np.unique(y)
+    # plt.subplot(1, 3, 1)
+    # plt.imshow(x[0, :, :, :3].astype(np.uint8))
+    # plt.subplot(1, 3, 2)
+    # plt.imshow(x[0, :, :, 3])
+    # plt.subplot(1, 3, 3)
+    # plt.imshow(y[0, :, :, 0])
+    # plt.show()
+    # x = x.astype(dtype=np.uint8)
+
+    # img = Image.fromarray(x[0, :, :, :], mode='P')
+
+    # print result
+    # print np.shape(result)
+    # with tf.Session() as sess:
+    #     dcl = DCL(sess, 'parameters/DCL_tensorflow.ckpt')
+    #     dcl.sampler(x)
+    #     dcl.load()
+    #     result = dcl.forward(x)
+    #     plt.subplot(1, 3, 1)
+    #     plt.imshow(x[0, :, :, :])
+    #     plt.subplot(1, 3, 2)
+    #     plt.imshow(result[0, :, :, 0])
+    #     plt.subplot(1, 3, 3)
+    #     plt.imshow(y[0, :, :, 0])
+    #     plt.show()

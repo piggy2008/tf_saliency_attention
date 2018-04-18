@@ -3,10 +3,10 @@ from PIL import Image
 import cv2
 import numpy as np
 
-# path = '/home/ty/data/video_saliency/train_all_gt'
-# save_path = '/home/ty/data/video_saliency/train_all_gt2'
-path = '/home/ty/data/davis/davis_test'
-save_path = '/home/ty/data/davis/davis_test_seq.txt'
+path = '/home/ty/data/video_saliency/train_all_gt2_no_coarse'
+save_path = '/home/ty/data/video_saliency/train_no_coarse_seq.txt'
+# path = '/home/ty/data/davis/davis_test'
+# save_path = '/home/ty/data/davis/davis_test_seq.txt'
 # save_path = '/home/ty/data/video_saliency/train_all_seq.txt'
 folders = os.listdir(path)
 file = open(save_path, 'w')
