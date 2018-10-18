@@ -30,9 +30,18 @@ def preprocess(image, prior, input_shape=512):
     input = np.zeros([input_shape, input_shape, 4], dtype=np.float32)
     input[:w, :h, :3] = x
     input[:w, :h, 3] = prior_arr
-
-
     return input[np.newaxis, ...], input[np.newaxis, :, :, :3]
+
+def preprocess2(image, input_shape=512):
+    x = np.array(image, dtype=np.float32)
+    x = x[:, :, ::-1]
+    mean = (104.00699, 116.66877, 122.67892)
+    mean = np.array(mean, dtype=np.float32)
+    x = (x - mean)
+    w, h, _ = x.shape
+    input = np.zeros([input_shape, input_shape, 3], dtype=np.float32)
+    input[:w, :h, :] = x
+    return input[np.newaxis, ...]
 
 def crf_refine(imgfilename, img, inference_map):
 
@@ -76,11 +85,17 @@ def loadBinFile(file_path):
     out = data.reshape([row, col, channel])
     out = np.squeeze(out)
     out = (out - np.amin(out)) / (np.amax(out) - np.amin(out) + 0.00001)
-    print out
+    print (out)
 
 
 if __name__ == '__main__':
-    img = cv2.imread('Comp_195.bmp')
-    anno = cv2.imread('Comp_195.png', 0)
-    crf_refine('test', img, anno)
+    # img = cv2.imread('Comp_195.bmp')
+    # anno = cv2.imread('Comp_195.png', 0)
+    # crf_refine('test', img, anno)
     # loadBinFile('.dcl_crf/test.bin')
+    weight = np.zeros([4, 3, 3, 3], dtype=np.float16)
+    weight[:, :, :, 0] = np.ones([4, 3, 3], dtype=np.float16)
+    import random
+    for i in range(0, 20):
+        print(random.randint(0,2))
+    print (weight[3, :, :, 1])

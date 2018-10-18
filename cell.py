@@ -39,15 +39,15 @@ class ConvLSTMCell(tf.nn.rnn_cell.RNNCell):
     x = tf.concat([x, h], axis=self._feature_axis)
     n = x.shape[-1].value
     m = 4 * self._filters if self._filters > 1 else 4
-    W = tf.get_variable('kernel', self._kernel + [n, m])
+    W = tf.get_variable('kernel', self._kernel + [n, m], initializer=tf.orthogonal_initializer)
     y = tf.nn.convolution(x, W, 'SAME', data_format=self._data_format)
     if not self._normalize:
       y += tf.get_variable('bias', [m], initializer=tf.zeros_initializer())
     j, i, f, o = tf.split(y, 4, axis=self._feature_axis)
 
     if self._peephole:
-      i += tf.get_variable('W_ci', c.shape[1:]) * c
-      f += tf.get_variable('W_cf', c.shape[1:]) * c
+      i += tf.get_variable('W_ci', c.shape[1:], initializer=tf.orthogonal_initializer) * c
+      f += tf.get_variable('W_cf', c.shape[1:], initializer=tf.orthogonal_initializer) * c
 
     if self._normalize:
       j = tf.contrib.layers.layer_norm(j)
@@ -59,7 +59,7 @@ class ConvLSTMCell(tf.nn.rnn_cell.RNNCell):
     c = c * f + i * self._activation(j)
 
     if self._peephole:
-      o += tf.get_variable('W_co', c.shape[1:]) * c
+      o += tf.get_variable('W_co', c.shape[1:], initializer=tf.orthogonal_initializer) * c
 
     if self._normalize:
       o = tf.contrib.layers.layer_norm(o)
@@ -132,3 +132,14 @@ class ConvGRUCell(tf.nn.rnn_cell.RNNCell):
       h = u * h + (1 - u) * self._activation(y)
 
     return h, h
+
+if __name__ == '__main__':
+  batch_size = 1
+  timesteps = 10
+  shape = [24, 24]
+  kernel = [3, 3]
+  channels = 1
+  filters = 1
+  cell = ConvLSTMCell(shape, filters, kernel)
+  inputs = tf.placeholder(tf.float32, [batch_size, timesteps] + shape + [channels])
+  outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype)

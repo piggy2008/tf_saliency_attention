@@ -20,7 +20,7 @@ def generate_one():
         images.sort()
         for image in images:
             name, suffix = os.path.splitext(image)
-            print os.path.join(folder, name)
+            print (os.path.join(folder, name))
             file.writelines(os.path.join(folder, name) + '\n')
 
     file.close()
@@ -31,7 +31,7 @@ def generate_seq():
         images.sort()
         for i in range(1, len(images) - batch + 1):
             image_batch = ''
-            for j in xrange(batch):
+            for j in range(batch):
 
                 image = images[i + j]
                 name, suffix = os.path.splitext(image)
@@ -40,7 +40,7 @@ def generate_seq():
                     image_batch = image_batch + path_temp
                 else:
                     image_batch = image_batch + path_temp + ','
-            print image_batch
+            print (image_batch)
             file.writelines(image_batch + '\n')
 
     file.close()

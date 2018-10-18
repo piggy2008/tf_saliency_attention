@@ -117,12 +117,12 @@ class VideoSailency(object):
         # rnn_output_fc8 = self.rnn_cell(fc8, 'fc8')
         # fc8 = tf.add(rnn_output_fc8, fc8)
 
-        up_fc8 = tf.image.resize_bilinear(fc8, [self.crop_size, self.crop_size])
+        up_fc8 = tf.image.resize_bilinear(fc8, [128, 128])
 
         pool4_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4, [3, 3, 512, 128], 'pool4_conv')), 0.5)
         pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
         pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
-        up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [self.crop_size, self.crop_size])
+        up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [128, 128])
 
         pool3_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3, [3, 3, 256, 128], 'pool3_conv')), 0.5)
         pool3_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_conv, [1, 1, 128, 128], 'pool3_fc')), 0.5)
@@ -167,33 +167,35 @@ class VideoSailency(object):
         fc7_dropout_r2 = tf.nn.dropout(fc7_r2, 0.5)
 
         fc8_r2 = self.conv2d(fc7_dropout_r2, [1, 1, 4096, 1], 'fc8_r2')
-        up_fc8_r2 = tf.image.resize_bilinear(fc8_r2, [self.crop_size, self.crop_size])
+        up_fc8_r2 = tf.image.resize_bilinear(fc8_r2, [128, 128])
 
         pool4_conv_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_r2, [3, 3, 512, 128], 'pool4_conv_r2')), 0.5)
         pool4_fc_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv_r2, [1, 1, 128, 128], 'pool4_fc_r2')), 0.5)
         pool4_ms_saliency_r2 = self.conv2d(pool4_fc_r2, [1, 1, 128, 1], 'pool4_ms_saliency_r2')
-        up_pool4_r2 = tf.image.resize_bilinear(pool4_ms_saliency_r2, [self.crop_size, self.crop_size])
+        up_pool4_r2 = tf.image.resize_bilinear(pool4_ms_saliency_r2, [128, 128])
 
         pool3_conv_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_r2, [3, 3, 256, 128], 'pool3_conv_r2')), 0.5)
         pool3_fc_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_conv_r2, [1, 1, 128, 128], 'pool3_fc_r2')), 0.5)
         pool3_ms_saliency_r2 = self.conv2d(pool3_fc_r2, [1, 1, 128, 1], 'pool3_ms_saliency_r2')
-        up_pool3_r2 = tf.image.resize_bilinear(pool3_ms_saliency_r2, [self.crop_size, self.crop_size])
+        # up_pool3_r2 = tf.image.resize_bilinear(pool3_ms_saliency_r2, [self.crop_size, self.crop_size])
 
-        final_saliency_r2 = tf.add(up_pool4_r2, up_fc8_r2)
+        # final_saliency_r2 = tf.add(up_pool4_r2, up_fc8_r2)
 
         ########## rnn fusion ############
 
         inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3), 0)
-        cell = ConvLSTMCell([self.crop_size, self.crop_size], 1, [3, 3])
+        cell = ConvLSTMCell([128, 128], 1, [3, 3])
         outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype, scope='rnn')
         rnn_output = tf.squeeze(outputs, axis=0)
-
+        up_rnn_output = tf.image.resize_bilinear(rnn_output, [self.crop_size, self.crop_size])
+        up2_rnn_output = tf.image.resize_bilinear(rnn_output, [128, 128])
         ########## C3D fusion ############
 
         # inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3), 0)
         C3D_outputs = self.conv3d(inputs, [3, 3, 3, 4, 1], name='3D_conv')
         C3D_output = tf.squeeze(C3D_outputs, axis=0)
-
+        up_C3D_output = tf.image.resize_bilinear(C3D_output, [self.crop_size, self.crop_size])
+        up2_C3D_output = tf.image.resize_bilinear(C3D_output, [128, 128])
         ########### ST fusion ############
         pool4_saliency_cancat = tf.concat([pool4_ms_saliency, pool4_ms_saliency_r2], 3, name='concat_pool4')
         pool4_saliency_ST = self.conv2d(pool4_saliency_cancat, [1, 1, 2, 1], 'pool4_saliency_ST')
@@ -209,16 +211,30 @@ class VideoSailency(object):
 
         # pool4_fc8_concat = tf.concat([up_pool3_ST, up_pool4_ST, up_fc8_ST], axis=3)
         # pool4_fc8_combine = self.conv2d(pool4_fc8_concat, [1, 1, 3, 1], 'pool4_fc8')
-        pool4_fc8_combine = tf.add(up_pool3_ST, up_pool4_ST)
-        pool4_fc8_combine = tf.add(pool4_fc8_combine, up_fc8_ST)
+        pool4_fc8_combine = tf.add(pool3_saliency_ST, pool4_saliency_ST)
+        pool4_fc8_combine = tf.add(pool4_fc8_combine, fc8_saliency_ST)
+        up2_pool4_fc8_combine = tf.image.resize_bilinear(pool4_fc8_combine, [128, 128])
+
+        up_pool4_fc8_combine = tf.add(up_pool3_ST, up_pool4_ST)
+        up_pool4_fc8_combine = tf.add(up_pool4_fc8_combine, up_fc8_ST)
 
         # final_saliency = tf.add(up_pool4_ST, up_fc8_ST)
         # final_saliency = tf.add(final_saliency, up_pool4_r2)
         # final_saliency = tf.add(final_saliency, up_fc8_r2)
+        # final_saliency = tf.add(pool4_fc8_combine, rnn_output)
+        # final_saliency = tf.add(final_saliency, C3D_output)
 
-        final_saliency = tf.add(pool4_fc8_combine, rnn_output)
-        final_saliency = tf.add(final_saliency, C3D_output)
+        ########### attetion fusion ############
+        motion_cancat = tf.concat([up2_pool4_fc8_combine, up2_C3D_output, up2_rnn_output], axis=3)
+        # attention_first = tf.nn.dropout(tf.nn.relu(self.conv2d(motion_cancat, [3, 3, 3, 128], 'attention_conv1')), 0.5)
+        attention_first = tf.nn.relu(self.conv2d(motion_cancat, [3, 3, 3, 256], 'attention_conv1'))
+        attention_second = tf.nn.softmax(self.conv2d(attention_first, [1, 1, 256, 3], 'attention_conv2'))
 
+        up_motion_cancat = tf.concat([up_pool4_fc8_combine, up_C3D_output, up_rnn_output], axis=3)
+        up_attention = tf.image.resize_bilinear(attention_second, [self.crop_size, self.crop_size])
+
+        final_fusion = tf.multiply(up_motion_cancat, up_attention)
+        final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
         ave_num = tf.constant(3.0, dtype=tf.float32, shape=[self.batch_size, self.crop_size, self.crop_size, 1])
         final_saliency = tf.div(final_saliency, ave_num)
 
@@ -227,11 +243,8 @@ class VideoSailency(object):
         self.rnn_output = final_saliency
         self.saver = tf.train.Saver()
 
-        # self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y),
-        #                            name='loss')
-        self.loss = tf.reduce_mean(
-            tf.nn.weighted_cross_entropy_with_logits(logits=final_saliency, targets=self.Y, pos_weight=0.12),
-            name='loss')
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y), name='loss')
+        # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(logits=final_saliency, targets=self.Y, pos_weight=0.12), name='loss')
 
         # self.loss_rnn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=C3D_output, labels=self.Y),
         #                            name='loss2')
@@ -259,7 +272,7 @@ class VideoSailency(object):
             self.X_prior = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 3], name='rgb_flow_image')
 
 
-        self.fusion_weight = tf.placeholder(tf.float32, [self.batch_size, 512, 512, 3], name='fusion_weight')
+        self.fusion_weight = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 3], name='fusion_weight')
         ############### R1 ###############
         conv1_1 = tf.nn.relu(self.conv2d(self.X, [3, 3, 3, 64], 'conv1_1'))
         conv1_2 = tf.nn.relu(self.conv2d(conv1_1, [3, 3, 64, 64], 'conv1_2'))
@@ -402,8 +415,8 @@ class VideoSailency(object):
         self.rnn_output = final_saliency
         self.saver = tf.train.Saver()
 
-        # self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y), name='loss')
-        self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(logits=final_saliency, targets=self.Y, pos_weight=0.12), name='loss')
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y), name='loss')
+        # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(logits=final_saliency, targets=self.Y, pos_weight=0.12), name='loss')
         # self.loss_rnn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=C3D_output, labels=self.Y),
         #                            name='loss2')
         # tf.summary.scalar('entropy', self.loss + 0.5 * self.loss_rnn)
@@ -413,9 +426,9 @@ class VideoSailency(object):
         # grads = optimizer.compute_gradients(self.loss + 0.5 * self.loss_rnn, var_list=trainable_var)
         # grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
 
-        # optimizer2 = tf.train.MomentumOptimizer(self.lr, 0.9)
-        # grads = optimizer2.compute_gradients(self.loss + 0.5 * self.loss_rnn, var_list=trainable_var)
+        # optimizer2 = tf.train.MomentumOptimizer(self.lr, 0.99)
         grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
+        # grads = optimizer2.compute_gradients(self.loss, var_list=trainable_var[-46:])
         self.train_op = optimizer.apply_gradients(grads)
 
 
@@ -446,7 +459,7 @@ class VideoSailency(object):
         if self.drop_path:
             log_loss.append('drop path is introduced\n')
             log_loss.append('drop path type is ' + self.drop_path_type + '\n')
-        for itr in range(6001):
+        for itr in range(16001):
             x, y = dataset.next_batch()
             # feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
             if self.drop_path:
@@ -466,7 +479,7 @@ class VideoSailency(object):
                                  self.fusion_weight: weight}
                 else:
                     # this senario can randomly choose 1, 2 or 3 paths to backpro
-                    path_num = random.randint(2, 3)
+                    path_num = 3
                     # path_num = 3
                     if path_num == 1:
                         weight = np.zeros([x.shape[0], x.shape[1], x.shape[2], 3], dtype=np.float16)
@@ -479,7 +492,7 @@ class VideoSailency(object):
                         random_path = random.randint(0, 2)
                         # weight[:, :, :, random_path] = np.zeros([x.shape[0], x.shape[1], x.shape[2]], dtype=np.float16)
                         # weight not set to 0 from beginning. firstly set to 0.8, then 0.5, last 0.2, final 0
-                        step = 0.8
+                        step = 0.0
                         weight[:, :, :, random_path] = np.ones([x.shape[0], x.shape[1], x.shape[2]], dtype=np.float16) * step
 
                         feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y,
@@ -592,8 +605,24 @@ class VideoSailency(object):
                 batch_x_no_prior[i] = input
                 batch_x[i] = input_prior
 
-            feed_dict = {self.X: batch_x_no_prior, self.X_prior: batch_x}
+            if self.drop_path:
+                weight = np.ones([4, 512, 512, 3], dtype=np.float16)
+                feed_dict = {self.X: batch_x_no_prior, self.X_prior: batch_x, self.fusion_weight: weight}
+            else:
+                feed_dict = {self.X: batch_x_no_prior, self.X_prior: batch_x}
+
+            # feed_dict = {self.X: batch_x_no_prior, self.X_prior: batch_x}
+            start = time.clock()
             saliency = self.sess.run(self.final_saliency, feed_dict=feed_dict)
+            end = time.clock()
+
+            # plt.subplot(2, 1, 1)
+            # plt.imshow(crop_final[3, :, :, 0])
+            #
+            # plt.subplot(2, 1, 2)
+            # plt.imshow(saliency[3, :, :, 0])
+            #
+            # plt.show()
 
             saliency = saliency * 255
             save_sal = saliency.astype(np.uint8)
@@ -601,6 +630,7 @@ class VideoSailency(object):
 
             image_path = os.path.join(save_path, images_path[-1] + '.png')
             print ('process:', image_path)
+            print('time:', end - start)
             if not os.path.exists(os.path.dirname(image_path)):
                 os.makedirs(os.path.dirname(image_path))
 
