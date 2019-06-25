@@ -32,7 +32,8 @@ if __name__ == '__main__':
                 vs.train_flow_ST_rnn(image_dir, label_dir, prior_dir, list_file_path)
         else:
             # parameter_path = 'models/2018-05-30 09:33:19/2000/snap_model.ckpt' #3d path total best result
-            parameter_path = 'models/2018-05-29 20:11:18/6000/snap_model.ckpt'
+            # parameter_path = 'models/2018-05-29 20:11:18/6000/snap_model.ckpt'
+            parameter_path = 'models/2018-07-01 11:02:01/24000/snap_model.ckpt' #3d path total attention best result
 
             if prior_type == 'prior':
                 # test dir

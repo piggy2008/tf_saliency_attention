@@ -76,7 +76,6 @@ def loadBinFile(file_path):
     row, = struct.unpack('i', file.read(4))
     col, = struct.unpack('i', file.read(4))
     channel, = struct.unpack('i', file.read(4))
-
     total = row * col * channel
     data = np.zeros([1, total])
     for i in range(0, total):
