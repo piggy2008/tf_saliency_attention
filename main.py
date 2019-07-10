@@ -12,7 +12,7 @@ if __name__ == '__main__':
         drop_path = False
         if phrase == 'train':
             if prior_type == 'prior':
-                parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
+                parameter_path = 'fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_tensorflow.ckpt'
                 # parameter_path = 'models/2018-05-24 17:01:51/6000/snap_model.ckpt'  #2018.5.25
                 # parameter_path = 'models/2018-05-30 21:11:24/6000/snap_model.ckpt'
                 # parameter_path = 'models/2018-07-01 11:02:01/0/snap_model.ckpt'
