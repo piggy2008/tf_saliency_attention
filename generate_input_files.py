@@ -3,8 +3,8 @@ from PIL import Image
 import cv2
 import numpy as np
 
-path = '/home/ty/data/video_saliency/train_all_gt2_no_coarse'
-save_path = '/home/ty/data/video_saliency/train_no_coarse_seq.txt'
+path = '/home/qub/data/saliency/video_saliency/train_all_gt2_revised/DAFB2'
+save_path = '/home/qub/data/saliency/video_saliency/train_seq_4f.txt'
 # path = '/home/ty/data/davis/davis_test'
 # save_path = '/home/ty/data/davis/davis_test_seq.txt'
 # save_path = '/home/ty/data/video_saliency/train_all_seq.txt'
@@ -26,6 +26,7 @@ def generate_one():
     file.close()
 
 def generate_seq():
+    folders.sort()
     for folder in folders:
         images = os.listdir(os.path.join(path, folder))
         images.sort()
@@ -35,7 +36,7 @@ def generate_seq():
 
                 image = images[i + j]
                 name, suffix = os.path.splitext(image)
-                path_temp = os.path.join(folder, name)
+                path_temp = os.path.join('DAFB2', folder, name)
                 if j == 3:
                     image_batch = image_batch + path_temp
                 else:
