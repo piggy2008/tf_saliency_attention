@@ -4,7 +4,7 @@ import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 from PIL import Image
 from matplotlib import pyplot as plt
-# from cell import ConvLSTMCell
+from cell import ConvLSTMCell
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
