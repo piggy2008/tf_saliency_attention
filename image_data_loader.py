@@ -694,5 +694,21 @@ class ImageAndPriorSeqCenterPData(ImageData):
 
             return batch_x, batch_y
 
+if __name__ == '__main__':
+    train_dir = '/home/ty/data/video_saliency/train_all'
+    label_dir = '/home/ty/data/video_saliency/train_all_gt2_revised'
+    prior_dir = '/home/ty/data/video_saliency/train_all_prior'
+    list_file_path = '/home/ty/data/video_saliency/train_seq_4f.txt'
+    list_file = open(list_file_path)
+    image_names = [line.strip() for line in list_file]
+    dataset = ImageAndPriorSeqData(train_dir, label_dir, prior_dir, None, None,
+                                   None,
+                                   image_names, None, '.jpg', '.png', 530, 512, 1,
+                                   4,
+                                   horizontal_flip=False)
+    for itr in range(6001):
+        x, y = dataset.next_batch()
+        print('x:', x.shape, '-----', 'y:', y.shape)
+
 
 
