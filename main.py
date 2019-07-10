@@ -7,7 +7,7 @@ if __name__ == '__main__':
     # config = tf.ConfigProto()
     # config.gpu_options.allow_growth = True
     with tf.Session() as sess:
-        phrase = 'test'
+        phrase = 'train'
         prior_type = 'prior'
         drop_path = False
         if phrase == 'train':
@@ -15,12 +15,12 @@ if __name__ == '__main__':
                 # parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
                 # parameter_path = 'models/2018-05-24 17:01:51/6000/snap_model.ckpt'  #2018.5.25
                 # parameter_path = 'models/2018-05-30 21:11:24/6000/snap_model.ckpt'
-                parameter_path = 'models/2018-05-30 09:33:19/2000/snap_model.ckpt'
-                vs = VideoSailency(sess, 4, drop_path=drop_path, image_size=530, crop_size=512, prior_type=prior_type, lr=0.000001, ckpt_dir=parameter_path)
+                parameter_path = 'models/2018-07-01 11:02:01/0/snap_model.ckpt'
+                vs = VideoSailency(sess, 4, drop_path=drop_path, image_size=530, crop_size=512, prior_type=prior_type, lr=0.00001, ckpt_dir=parameter_path)
                 image_dir = '/home/ty/data/video_saliency/train_all'
                 label_dir = '/home/ty/data/video_saliency/train_all_gt2_revised'
                 prior_dir = '/home/ty/data/video_saliency/train_all_prior'
-                list_file_path = '/home/ty/data/video_saliency/train_all_seq.txt'
+                list_file_path = '/home/ty/data/video_saliency/train_seq_4f.txt'
                 vs.train_ST_rnn(image_dir, label_dir, prior_dir, list_file_path)
             else:
                 parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'

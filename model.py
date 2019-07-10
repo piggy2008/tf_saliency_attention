@@ -455,11 +455,12 @@ class VideoSailency(object):
         # save_path = 'tempImages'
         time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
         log_loss = []
-        log_loss.append(self.prior_type + '\n')
+        log_loss.append('prior type:' + str(self.prior_type) + '\n')
+        log_loss.append('starting lr:' + str(self.lr) + '\n')
         if self.drop_path:
             log_loss.append('drop path is introduced\n')
             log_loss.append('drop path type is ' + self.drop_path_type + '\n')
-        for itr in range(16001):
+        for itr in range(26001):
             x, y = dataset.next_batch()
             # feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
             if self.drop_path:
