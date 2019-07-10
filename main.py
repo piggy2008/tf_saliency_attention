@@ -1,15 +1,15 @@
 from model import VideoSailency
 import tensorflow as tf
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 if __name__ == '__main__':
     # config = tf.ConfigProto()
     # config.gpu_options.allow_growth = True
     with tf.Session() as sess:
-        phrase = 'train'
+        phrase = 'test'
         prior_type = 'prior'
-        drop_path = True
+        drop_path = False
         if phrase == 'train':
             if prior_type == 'prior':
                 # parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
