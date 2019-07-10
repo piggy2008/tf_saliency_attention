@@ -141,7 +141,7 @@ pool3_ms_saliency_b = parameter['pool3_ms_saliency_b']
 ################### R2 ###########################
 
 conv1_1_r2_w = parameter['conv1_1_r2_w']
-conv1_1_r2_w = conv1_1_r2_w[:, :3, :, :]
+# conv1_1_r2_w = conv1_1_r2_w[:, :3, :, :]
 conv1_1_r2_b = parameter['conv1_1_r2_b']
 
 conv1_2_r2_w = parameter['conv1_2_r2_w']
@@ -350,9 +350,9 @@ fc8_saliency_ST_b = tf.Variable(fc8_saliency_ST_b, name='fc8_saliency_ST_b')
 size = 512
 
 x = tf.placeholder(tf.float32, [4, size, size, 3])
-# x_prior = tf.placeholder(tf.float32, [4, size, size, 4])
+x_prior = tf.placeholder(tf.float32, [4, size, size, 4])
 # input: raw flow map
-x_prior = tf.placeholder(tf.float32, [4, size, size, 3])
+# x_prior = tf.placeholder(tf.float32, [4, size, size, 3])
 
 ####### R1 compute ###########
 conv1_1 = tf.nn.relu(conv2d(x, conv1_1_w) + conv1_1_b)
