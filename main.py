@@ -12,11 +12,11 @@ if __name__ == '__main__':
         drop_path = False
         if phrase == 'train':
             if prior_type == 'prior':
-                # parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
+                parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
                 # parameter_path = 'models/2018-05-24 17:01:51/6000/snap_model.ckpt'  #2018.5.25
                 # parameter_path = 'models/2018-05-30 21:11:24/6000/snap_model.ckpt'
-                parameter_path = 'models/2018-07-01 11:02:01/0/snap_model.ckpt'
-                vs = VideoSailency(sess, 4, drop_path=drop_path, image_size=530, crop_size=512, prior_type=prior_type, lr=0.00001, ckpt_dir=parameter_path)
+                # parameter_path = 'models/2018-07-01 11:02:01/0/snap_model.ckpt'
+                vs = VideoSailency(sess, 4, drop_path=drop_path, image_size=530, crop_size=512, prior_type=prior_type, lr=0.0001, ckpt_dir=parameter_path)
                 image_dir = '/home/ty/data/video_saliency/train_all'
                 label_dir = '/home/ty/data/video_saliency/train_all_gt2_revised'
                 prior_dir = '/home/ty/data/video_saliency/train_all_prior'
