@@ -70,7 +70,7 @@ def rnn_cell(input_tensor, name):
 
     return tf.stack(outputs_static_sq, axis=0), tf.stack(outputs_dynamic_sq, axis=0)
 # mnist = input_data.read_data_sets('MNIST_data/', one_hot=True)
-parameter = sio.loadmat('../mat_parameter/fusionST_parameter_ms.mat')
+parameter = sio.loadmat('/home/ty/code/tf_saliency_attention/mat_parameter/fusionST_parameter_ms.mat')
 
 conv1_1_w = parameter['conv1_1_w']
 conv1_1_b = parameter['conv1_1_b']
@@ -539,4 +539,4 @@ with tf.Session() as sess:
     # print np.shape(result)
     # plt.imshow(result[0,:,:,0])
     # plt.show()
-    saver.save(sess, '../fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_tensorflow.ckpt')
+    saver.save(sess, '/home/ty/code/tf_saliency_attention/fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_tensorflow.ckpt')
