@@ -3,8 +3,8 @@ from PIL import Image
 import cv2
 import numpy as np
 
-path = '/home/qub/data/saliency/video_saliency/train_all_gt2_revised/DAFB2'
-save_path = '/home/qub/data/saliency/video_saliency/train_seq_4f.txt'
+path = '/home/ty/data/video_saliency/train_all_gt2_revised/DAFB2'
+save_path = '/home/ty/data/video_saliency/train_seq_4f.txt'
 # path = '/home/ty/data/davis/davis_test'
 # save_path = '/home/ty/data/davis/davis_test_seq.txt'
 # save_path = '/home/ty/data/video_saliency/train_all_seq.txt'
