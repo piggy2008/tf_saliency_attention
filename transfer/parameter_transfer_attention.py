@@ -4,7 +4,7 @@ import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 from PIL import Image
 from matplotlib import pyplot as plt
-from cell import ConvLSTMCell
+# from cell import ConvLSTMCell
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -539,4 +539,4 @@ with tf.Session() as sess:
     # print np.shape(result)
     # plt.imshow(result[0,:,:,0])
     # plt.show()
-    saver.save(sess, '../fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_flow_tensorflow.ckpt')
+    saver.save(sess, '../fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_tensorflow.ckpt')
