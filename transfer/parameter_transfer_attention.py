@@ -531,7 +531,7 @@ with tf.Session() as sess:
     sess.run(init)
 
     in_ = x_[:, :, :, :3]
-    in2_ = x_[:, :, :, :3]
+    in2_ = x_[:, :, :, :]
     print (np.shape(in_))
     feed_dict = {x: in_, x_prior: in2_}
     result1, result2, result = sess.run([final_saliency_r1, final_saliency_r2, final_saliency], feed_dict)
