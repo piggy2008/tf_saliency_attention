@@ -10,6 +10,7 @@ if __name__ == '__main__':
         phrase = 'train'
         prior_type = 'prior'
         drop_path = False
+        iter_num = 26000
         if phrase == 'train':
             if prior_type == 'prior':
                 parameter_path = 'fusion_C3D_ms_attention_parameter/fusionST_C3D_ms_attention_tensorflow.ckpt'
@@ -21,7 +22,7 @@ if __name__ == '__main__':
                 label_dir = '/home/ty/data/video_saliency/train_all_gt2_revised'
                 prior_dir = '/home/ty/data/video_saliency/train_all_prior'
                 list_file_path = '/home/ty/data/video_saliency/train_seq_4f.txt'
-                vs.train_ST_rnn(image_dir, label_dir, prior_dir, list_file_path)
+                vs.train_ST_rnn(image_dir, label_dir, prior_dir, list_file_path, iter_num)
             else:
                 parameter_path = 'fusion_C3D_ms_parameter/fusionST_C3D_ms_tensorflow.ckpt'
                 vs = VideoSailency(sess, 4, drop_path=drop_path, prior_type=prior_type, ckpt_dir=parameter_path)

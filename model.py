@@ -432,7 +432,7 @@ class VideoSailency(object):
         self.train_op = optimizer.apply_gradients(grads)
 
 
-    def train_ST_rnn(self, train_dir, label_dir, prior_dir, list_file_path):
+    def train_ST_rnn(self, train_dir, label_dir, prior_dir, list_file_path, iter_num=4000):
 
         list_file = open(list_file_path)
         image_names = [line.strip() for line in list_file]
@@ -460,7 +460,7 @@ class VideoSailency(object):
         if self.drop_path:
             log_loss.append('drop path is introduced\n')
             log_loss.append('drop path type is ' + self.drop_path_type + '\n')
-        for itr in range(26001):
+        for itr in range(iter_num + 1):
             x, y = dataset.next_batch()
             # feed_dict = {self.X: x[:, :, :, :3], self.X_prior: x, self.Y: y}
             if self.drop_path:
