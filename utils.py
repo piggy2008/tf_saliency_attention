@@ -19,6 +19,10 @@ config_CRF_bb = 3
 config_CRF_bw = 5
 
 
+def MaxMinNormalization(x,Max,Min):
+    x = (x - Min) / (Max - Min);
+    return x;
+
 def preprocess(image, prior, input_shape=512):
     x = np.array(image, dtype=np.float32)
     x = x[:, :, ::-1]
