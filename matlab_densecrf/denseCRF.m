@@ -39,6 +39,8 @@ for foldId = fold_start:length(parent_file)
         %[~,imgfilename,~] = fileparts(im_names{j});
         crf_smap =  do_crf_refinement(config, name, img, inference_map2);
         %imshow(crf_smap, [res_path im_path '/' name map_suffix]);
+        crf_smap(crf_smap < 30) = 0;
+        crf_smap(crf_smap > 220) = 255;
         imwrite(crf_smap, [res_path im_path '/' name map_suffix]);
         fprintf('Time cost: %.2f s\n', toc);
     end
