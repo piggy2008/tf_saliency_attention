@@ -3,41 +3,31 @@ import numpy as np
 from PIL import Image
 from misc import check_mkdir, crf_refine, AvgMeter, cal_precision_recall_mae, cal_fmeasure
 
-ckpt_path = './ckpt'
-exp_name = 'VideoSaliency_2019-07-11 00:09:51'
-name = 'MCL'
 # root = '/home/qub/data/saliency/davis/davis_test2'
-root = '/home/qub/data/saliency/MCL/MCL_test'
+root_inference = '/home/ty/code/tf_saliency_attention/total_result/result_rnn_2018-08-04 11:08:00/'
+root = '/home/ty/data/davis/480p/'
+name = 'davis'
 # gt_root = '/home/qub/data/saliency/davis/GT'
-gt_root = '/home/qub/data/saliency/MCL/GT'
+gt_root = '/home/ty/data/davis/GT/'
 # gt_root = '/home/qub/data/saliency/VOS/GT'
-args = {
-    'snapshot': '30000',  # your snapshot filename (exclude extension name)
-    'crf_refine': False,  # whether to use crf to refine results
-    'save_results': True  # whether to save the resulting masks
-}
 
 precision_record, recall_record, = [AvgMeter() for _ in range(256)], [AvgMeter() for _ in range(256)]
 mae_record = AvgMeter()
 results = {}
 
-save_path = os.path.join(ckpt_path, exp_name, '(%s) %s_%s' % (exp_name, name, args['snapshot']))
-folders = os.listdir(save_path)
+# save_path = os.path.join(ckpt_path, exp_name, '(%s) %s_%s' % (exp_name, name, args['snapshot']))
+folders = os.listdir(root_inference)
 folders.sort()
 for folder in folders:
-    imgs = os.listdir(os.path.join(save_path, folder))
+    imgs = os.listdir(os.path.join(root_inference, folder))
     imgs.sort()
 
     for img in imgs:
         print(os.path.join(folder, img))
-        if name == 'VOS':
-            image = Image.open(os.path.join(root, folder, img[:-4] + '.png')).convert('RGB')
-        else:
-            image = Image.open(os.path.join(root, folder, img[:-4] + '.jpg')).convert('RGB')
+        image = Image.open(os.path.join(root, folder, img[:-4] + '.jpg')).convert('RGB')
         gt = np.array(Image.open(os.path.join(gt_root, folder, img)).convert('L'))
-        pred = np.array(Image.open(os.path.join(save_path, folder, img)).convert('L'))
-        if args['crf_refine']:
-            pred = crf_refine(np.array(image), pred)
+        pred = np.array(Image.open(os.path.join(root_inference, folder, img)).convert('L'))
+
         precision, recall, mae = cal_precision_recall_mae(pred, gt)
 
         for pidx, pdata in enumerate(zip(precision, recall)):
