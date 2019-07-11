@@ -11,6 +11,7 @@ import os
 import time
 from utils import preprocess, preprocess2
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+from utils import MaxMinNormalization
 
 def get_conv_weights(weight_shape, sess):
     return math.sqrt(2 / (9.0 * 64)) * sess.run(tf.truncated_normal(weight_shape))
@@ -626,7 +627,9 @@ class VideoSailency(object):
             # plt.show()
 
             saliency = saliency * 255
-            save_sal = saliency.astype(np.uint8)
+            save_sal = saliency.astype('float')
+            save_sal = MaxMinNormalization(save_sal, save_sal.max(), save_sal.min()) * 255.0
+            save_sal = save_sal.astype('uint8')
             save_img = Image.fromarray(save_sal[3, :h, :w, 0])
 
             image_path = os.path.join(save_path, images_path[-1] + '.png')
