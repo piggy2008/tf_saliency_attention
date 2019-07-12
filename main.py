@@ -38,9 +38,14 @@ if __name__ == '__main__':
             parameter_path = 'models/2019-07-10 23:48:04/26000/snap_model.ckpt'
             if prior_type == 'prior':
                 # test dir
-                test_dir = '/home/ty/data/FBMS/FBMS_Testset'
-                test_prior_dir = '/home/ty/data/FBMS/FBMS_Testset_flow_prior'
-                list_file_path ='/home/ty/data/FBMS/FBMS_seq_file.txt'
+                # FBMS
+                # test_dir = '/home/ty/data/FBMS/FBMS_Testset'
+                # test_prior_dir = '/home/ty/data/FBMS/FBMS_Testset_flow_prior'
+                # list_file_path = '/home/ty/data/FBMS/FBMS_seq_file.txt'
+                # DAVIS
+                test_dir = '/home/ty/data/davis/davis_test'
+                test_prior_dir = '/home/ty/data/davis/davis_flow_prior'
+                list_file_path = '/home/ty/data/davis/davis_test2_seq.txt'
                 save_path = 'total_result/result_rnn'
                 vs = VideoSailency(sess, 4, prior_type=prior_type, ckpt_dir=parameter_path)
                 #
