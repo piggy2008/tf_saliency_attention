@@ -45,3 +45,5 @@ for foldId = fold_start:length(parent_file)
         fprintf('Time cost: %.2f s\n', toc);
     end
 end
+
+exit()
