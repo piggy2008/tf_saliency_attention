@@ -34,8 +34,8 @@ if __name__ == '__main__':
         else:
             # parameter_path = 'models/2018-05-30 09:33:19/2000/snap_model.ckpt' #3d path total best result
             # parameter_path = 'models/2018-05-29 20:11:18/6000/snap_model.ckpt'
-            parameter_path = 'models/2018-07-01 11:02:01/24000/snap_model.ckpt' #3d path total attention best result
-
+            # parameter_path = 'models/2018-07-01 11:02:01/24000/snap_model.ckpt' #3d path total attention best result
+            parameter_path = 'models/2019-07-10 23:48:04/26000/snap_model.ckpt'
             if prior_type == 'prior':
                 # test dir
                 test_dir = '/home/ty/data/FBMS/FBMS_Testset'
