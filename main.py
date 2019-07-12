@@ -7,7 +7,7 @@ if __name__ == '__main__':
     # config = tf.ConfigProto()
     # config.gpu_options.allow_growth = True
     with tf.Session() as sess:
-        phrase = 'train'
+        phrase = 'test'
         prior_type = 'prior'
         drop_path = False
         iter_num = 26000
