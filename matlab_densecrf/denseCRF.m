@@ -1,8 +1,8 @@
-root_inference = '/home/ty/code/tf_saliency_attention/total_result/result_rnn_2019-07-13 18:46:34/';
+root_inference = '/home/ty/code/tf_saliency_attention/total_result/result_rnn_2019-07-14 00:40:33/';
 % root = '/home/ty/data/FBMS/FBMS_Testset/';
 root = '/home/ty/data/davis/480p/';
 parent_file = dir(root_inference);
-res_path = '/home/ty/code/tf_saliency_attention/total_result/result_rnn_crf_2019-07-13 18:46:34/';
+res_path = '/home/ty/code/tf_saliency_attention/total_result/result_rnn_crf_2019-07-14 00:40:33/';
 mkdir(res_path);
 fold_start = 3;
 
