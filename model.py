@@ -47,7 +47,7 @@ class VideoSailency(object):
         if drop_path:
             self.build_ST_RNN_drop_path()
         else:
-            self.build_ST_RNN()
+            self.build_ST_C3D()
 
         # drop_path_type: choose1, choose2 and default
         # choose 1: one path
@@ -76,6 +76,193 @@ class VideoSailency(object):
     def max_pool(self, x):
         return tf.nn.max_pool(x, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    def build_ST_C3D(self):
+        ############### Input ###############
+        self.X = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 3], name='rgb_image')
+
+        self.Y = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 1], name='gt')
+        if (self.prior_type == 'prior'):
+            self.X_prior = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 4],
+                                          name='rgb_prior_image')
+        else:
+            self.X_prior = tf.placeholder(tf.float32, [self.batch_size, self.crop_size, self.crop_size, 3],
+                                          name='rgb_flow_image')
+
+        ############### R1 ###############
+        conv1_1 = tf.nn.relu(self.conv2d(self.X, [3, 3, 3, 64], 'conv1_1'))
+        conv1_2 = tf.nn.relu(self.conv2d(conv1_1, [3, 3, 64, 64], 'conv1_2'))
+        pool1 = tf.nn.max_pool(conv1_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+        conv2_1 = tf.nn.relu(self.conv2d(pool1, [3, 3, 64, 128], 'conv2_1'))
+        conv2_2 = tf.nn.relu(self.conv2d(conv2_1, [3, 3, 128, 128], 'conv2_2'))
+        pool2 = tf.nn.max_pool(conv2_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+        conv3_1 = tf.nn.relu(self.conv2d(pool2, [3, 3, 128, 256], 'conv3_1'))
+        conv3_2 = tf.nn.relu(self.conv2d(conv3_1, [3, 3, 256, 256], 'conv3_2'))
+        conv3_3 = tf.nn.relu(self.conv2d(conv3_2, [3, 3, 256, 256], 'conv3_3'))
+        pool3 = tf.nn.max_pool(conv3_3, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool3')
+        conv4_1 = tf.nn.relu(self.conv2d(pool3, [3, 3, 256, 512], 'conv4_1'))
+        conv4_2 = tf.nn.relu(self.conv2d(conv4_1, [3, 3, 512, 512], 'conv4_2'))
+        conv4_3 = tf.nn.relu(self.conv2d(conv4_2, [3, 3, 512, 512], 'conv4_3'))
+        pool4 = tf.nn.max_pool(conv4_3, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME', name='pool4')
+
+        conv5_1 = tf.nn.relu(self.astro_conv2d(pool4, [3, 3, 512, 512], hole=2, name='conv5_1'))
+        conv5_2 = tf.nn.relu(self.astro_conv2d(conv5_1, [3, 3, 512, 512], hole=2, name='conv5_2'))
+        conv5_3 = tf.nn.relu(self.astro_conv2d(conv5_2, [3, 3, 512, 512], hole=2, name='conv5_3'))
+        pool5 = tf.nn.max_pool(conv5_3, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME')
+
+        fc6 = tf.nn.relu(self.astro_conv2d(pool5, [4, 4, 512, 4096], hole=4, name='fc6'))
+        fc6_dropout = tf.nn.dropout(fc6, 0.5)
+
+        fc7 = tf.nn.relu(self.astro_conv2d(fc6_dropout, [1, 1, 4096, 4096], hole=4, name='fc7'))
+        fc7_dropout = tf.nn.dropout(fc7, 0.5)
+
+        fc8 = self.conv2d(fc7_dropout, [1, 1, 4096, 1], 'fc8')
+        # rnn_output_fc8 = self.rnn_cell(fc8, 'fc8')
+        # fc8 = tf.add(rnn_output_fc8, fc8)
+
+        up_fc8 = tf.image.resize_bilinear(fc8, [128, 128])
+
+        pool4_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4, [3, 3, 512, 128], 'pool4_conv')), 0.5)
+        pool4_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv, [1, 1, 128, 128], 'pool4_fc')), 0.5)
+        pool4_ms_saliency = self.conv2d(pool4_fc, [1, 1, 128, 1], 'pool4_ms_saliency')
+        up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [128, 128])
+
+        # pool3_conv = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3, [3, 3, 256, 128], 'pool3_conv')), 0.5)
+        # pool3_fc = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_conv, [1, 1, 128, 128], 'pool3_fc')), 0.5)
+        # pool3_ms_saliency = self.conv2d(pool3_fc, [1, 1, 128, 1], 'pool3_ms_saliency')
+        # up_pool3 = tf.image.resize_bilinear(pool3_ms_saliency, [self.crop_size, self.crop_size])
+        # rnn_output_pool4 = self.rnn_cell(pool4_ms_saliency, 'pool4')
+        # pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
+
+        # final_saliency_r1 = tf.add(up_pool4, up_fc8)
+
+        ############### R2 ###############
+        if (self.prior_type == 'prior'):
+            conv1_1_r2 = tf.nn.relu(self.conv2d(self.X_prior, [3, 3, 4, 64], 'conv1_1_r2'))
+        else:
+            conv1_1_r2 = tf.nn.relu(self.conv2d(self.X_prior, [3, 3, 3, 64], 'conv1_1_r2'))
+
+        conv1_2_r2 = tf.nn.relu(self.conv2d(conv1_1_r2, [3, 3, 64, 64], 'conv1_2_r2'))
+        pool1_r2 = tf.nn.max_pool(conv1_2_r2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1_r2')
+        conv2_1_r2 = tf.nn.relu(self.conv2d(pool1_r2, [3, 3, 64, 128], 'conv2_1_r2'))
+        conv2_2_r2 = tf.nn.relu(self.conv2d(conv2_1_r2, [3, 3, 128, 128], 'conv2_2_r2'))
+        pool2_r2 = tf.nn.max_pool(conv2_2_r2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2_r2')
+        conv3_1_r2 = tf.nn.relu(self.conv2d(pool2_r2, [3, 3, 128, 256], 'conv3_1_r2'))
+        conv3_2_r2 = tf.nn.relu(self.conv2d(conv3_1_r2, [3, 3, 256, 256], 'conv3_2_r2'))
+        conv3_3_r2 = tf.nn.relu(self.conv2d(conv3_2_r2, [3, 3, 256, 256], 'conv3_3_r2'))
+        pool3_r2 = tf.nn.max_pool(conv3_3_r2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool3_r2')
+        conv4_1_r2 = tf.nn.relu(self.conv2d(pool3_r2, [3, 3, 256, 512], 'conv4_1_r2'))
+        conv4_2_r2 = tf.nn.relu(self.conv2d(conv4_1_r2, [3, 3, 512, 512], 'conv4_2_r2'))
+        conv4_3_r2 = tf.nn.relu(self.conv2d(conv4_2_r2, [3, 3, 512, 512], 'conv4_3_r2'))
+        pool4_r2 = tf.nn.max_pool(conv4_3_r2, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME', name='pool4_r2')
+
+        conv5_1_r2 = tf.nn.relu(self.astro_conv2d(pool4_r2, [3, 3, 512, 512], hole=2, name='conv5_1_r2'))
+        conv5_2_r2 = tf.nn.relu(self.astro_conv2d(conv5_1_r2, [3, 3, 512, 512], hole=2, name='conv5_2_r2'))
+        conv5_3_r2 = tf.nn.relu(self.astro_conv2d(conv5_2_r2, [3, 3, 512, 512], hole=2, name='conv5_3_r2'))
+        pool5_r2 = tf.nn.max_pool(conv5_3_r2, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME')
+
+        fc6_r2 = tf.nn.relu(self.astro_conv2d(pool5_r2, [4, 4, 512, 4096], hole=4, name='fc6_r2'))
+        fc6_dropout_r2 = tf.nn.dropout(fc6_r2, 0.5)
+
+        fc7_r2 = tf.nn.relu(self.astro_conv2d(fc6_dropout_r2, [1, 1, 4096, 4096], hole=4, name='fc7_r2'))
+        fc7_dropout_r2 = tf.nn.dropout(fc7_r2, 0.5)
+
+        fc8_r2 = self.conv2d(fc7_dropout_r2, [1, 1, 4096, 1], 'fc8_r2')
+        up_fc8_r2 = tf.image.resize_bilinear(fc8_r2, [128, 128])
+
+        pool4_conv_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_r2, [3, 3, 512, 128], 'pool4_conv_r2')), 0.5)
+        pool4_fc_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool4_conv_r2, [1, 1, 128, 128], 'pool4_fc_r2')), 0.5)
+        pool4_ms_saliency_r2 = self.conv2d(pool4_fc_r2, [1, 1, 128, 1], 'pool4_ms_saliency_r2')
+        up_pool4_r2 = tf.image.resize_bilinear(pool4_ms_saliency_r2, [128, 128])
+
+        # pool3_conv_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_r2, [3, 3, 256, 128], 'pool3_conv_r2')), 0.5)
+        # pool3_fc_r2 = tf.nn.dropout(tf.nn.relu(self.conv2d(pool3_conv_r2, [1, 1, 128, 128], 'pool3_fc_r2')), 0.5)
+        # pool3_ms_saliency_r2 = self.conv2d(pool3_fc_r2, [1, 1, 128, 1], 'pool3_ms_saliency_r2')
+        # up_pool3_r2 = tf.image.resize_bilinear(pool3_ms_saliency_r2, [self.crop_size, self.crop_size])
+
+        # final_saliency_r2 = tf.add(up_pool4_r2, up_fc8_r2)
+
+        ########## rnn fusion ############
+
+        inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3), 0)
+        # cell = ConvLSTMCell([128, 128], 1, [3, 3])
+        # outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype, scope='rnn')
+        # rnn_output = tf.squeeze(outputs, axis=0)
+        # up_rnn_output = tf.image.resize_bilinear(rnn_output, [self.crop_size, self.crop_size])
+        # up2_rnn_output = tf.image.resize_bilinear(rnn_output, [128, 128])
+        ########## C3D fusion ############
+
+        # inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3), 0)
+        C3D_outputs = self.conv3d(inputs, [3, 3, 3, 4, 1], name='3D_conv')
+        C3D_output = tf.squeeze(C3D_outputs, axis=0)
+        # up_C3D_output = tf.image.resize_bilinear(C3D_output, [self.crop_size, self.crop_size])
+        # up2_C3D_output = tf.image.resize_bilinear(C3D_output, [128, 128])
+        ########### ST fusion ############
+        pool4_saliency_cancat = tf.concat([pool4_ms_saliency, pool4_ms_saliency_r2], 3, name='concat_pool4')
+        pool4_saliency_ST = self.conv2d(pool4_saliency_cancat, [1, 1, 2, 1], 'pool4_saliency_ST')
+        up_pool4_ST = tf.image.resize_bilinear(pool4_saliency_ST, [self.crop_size, self.crop_size])
+
+        # pool3_saliency_cancat = tf.concat([pool3_ms_saliency, pool3_ms_saliency_r2], 3, name='concat_pool3')
+        # pool3_saliency_ST = self.conv2d(pool3_saliency_cancat, [1, 1, 2, 1], 'pool3_saliency_ST')
+        # up_pool3_ST = tf.image.resize_bilinear(pool3_saliency_ST, [self.crop_size, self.crop_size])
+
+        fc8_concat = tf.concat([fc8, fc8_r2], 3, name='concat_fc8')
+        fc8_saliency_ST = self.conv2d(fc8_concat, [1, 1, 2, 1], 'fc8_saliency_ST')
+        # up_fc8_ST = tf.image.resize_bilinear(fc8_saliency_ST, [self.crop_size, self.crop_size])
+
+        # pool4_fc8_concat = tf.concat([up_pool3_ST, up_pool4_ST, up_fc8_ST], axis=3)
+        # pool4_fc8_combine = self.conv2d(pool4_fc8_concat, [1, 1, 3, 1], 'pool4_fc8')
+        # pool4_fc8_combine = tf.add(pool3_saliency_ST, pool4_saliency_ST)
+        pool4_fc8_combine = tf.add(pool4_saliency_ST, fc8_saliency_ST)
+        # up2_pool4_fc8_combine = tf.image.resize_bilinear(pool4_fc8_combine, [128, 128])
+
+        # up_pool4_fc8_combine = tf.add(up_pool3_ST, up_pool4_ST)
+        # up_pool4_fc8_combine = tf.add(up_pool4_fc8_combine, up_fc8_ST)
+
+        # final_saliency = tf.add(up_pool4_ST, up_fc8_ST)
+        # final_saliency = tf.add(final_saliency, up_pool4_r2)
+        # final_saliency = tf.add(final_saliency, up_fc8_r2)
+        # final_saliency = tf.add(pool4_fc8_combine, rnn_output)
+        # final_saliency = tf.add(final_saliency, C3D_output)
+
+        ########### attetion fusion ############
+        # motion_cancat = tf.concat([up2_pool4_fc8_combine, up2_C3D_output, up2_rnn_output], axis=3)
+        # # attention_first = tf.nn.dropout(tf.nn.relu(self.conv2d(motion_cancat, [3, 3, 3, 128], 'attention_conv1')), 0.5)
+        # attention_first = tf.nn.relu(self.conv2d(motion_cancat, [3, 3, 3, 256], 'attention_conv1'))
+        # attention_second = tf.nn.softmax(self.conv2d(attention_first, [1, 1, 256, 3], 'attention_conv2'))
+        #
+        # up_motion_cancat = tf.concat([up_pool4_fc8_combine, up_C3D_output, up_rnn_output], axis=3)
+        # up_attention = tf.image.resize_bilinear(attention_second, [self.crop_size, self.crop_size])
+        #
+        # final_fusion = tf.multiply(up_motion_cancat, up_attention)
+        # final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
+        # ave_num = tf.constant(3.0, dtype=tf.float32, shape=[self.batch_size, self.crop_size, self.crop_size, 1])
+        # final_saliency = tf.div(final_saliency, ave_num)
+        final_saliency = tf.add(pool4_fc8_combine, C3D_output)
+        final_saliency = tf.image.resize_bilinear(final_saliency, [512, 512])
+        # final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
+        self.final_saliency = tf.sigmoid(final_saliency)
+        self.up_fc8 = up_fc8
+        self.rnn_output = final_saliency
+        self.saver = tf.train.Saver()
+
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=final_saliency, labels=self.Y),
+                                   name='loss')
+        # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(logits=final_saliency, targets=self.Y, pos_weight=0.12), name='loss')
+
+        # self.loss_rnn = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=C3D_output, labels=self.Y),
+        #                            name='loss2')
+        # tf.summary.scalar('entropy', self.loss + 0.1 * self.loss_rnn)
+        tf.summary.scalar('entropy', self.loss)
+        trainable_var = tf.trainable_variables()
+        optimizer = tf.train.AdamOptimizer(self.lr, name='optimizer')
+        # grads = optimizer.compute_gradients(self.loss + 1 * self.loss_rnn, var_list=trainable_var)
+        grads = optimizer.compute_gradients(self.loss, var_list=trainable_var)
+        # grads = optimizer.compute_gradients(self.loss + 0.5 * self.loss_rnn, var_list=trainable_var[-22:])
+
+        # optimizer2 = tf.train.MomentumOptimizer(self.lr, 0.9)
+        # grads = optimizer2.compute_gradients(self.loss + 0.5 * self.loss_rnn, var_list=trainable_var[-22:])
+        # grads = optimizer2.compute_gradients(self.loss, var_list=trainable_var)
+        self.train_op = optimizer.apply_gradients(grads)
 
     def build_ST_RNN(self):
         ############### Input ###############
