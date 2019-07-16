@@ -129,14 +129,14 @@ pool4_fc_b = parameter['pool4_fc_b']
 pool4_ms_saliency_w = parameter['pool4_ms_saliency_w']
 pool4_ms_saliency_b = parameter['pool4_ms_saliency_b']
 
-pool3_conv_w = parameter['pool3_conv_w']
-pool3_conv_b = parameter['pool3_conv_b']
+# pool3_conv_w = parameter['pool3_conv_w']
+# pool3_conv_b = parameter['pool3_conv_b']
 
-pool3_fc_w = parameter['pool3_fc_w']
-pool3_fc_b = parameter['pool3_fc_b']
+# pool3_fc_w = parameter['pool3_fc_w']
+# pool3_fc_b = parameter['pool3_fc_b']
 
-pool3_ms_saliency_w = parameter['pool3_ms_saliency_w']
-pool3_ms_saliency_b = parameter['pool3_ms_saliency_b']
+# pool3_ms_saliency_w = parameter['pool3_ms_saliency_w']
+# pool3_ms_saliency_b = parameter['pool3_ms_saliency_b']
 
 ################### R2 ###########################
 
@@ -207,19 +207,19 @@ pool4_fc_r2_b = parameter['pool4_fc_r2_b']
 pool4_ms_saliency_r2_w = parameter['pool4_ms_saliency_r2_w']
 pool4_ms_saliency_r2_b = parameter['pool4_ms_saliency_r2_b']
 
-pool3_conv_r2_w = parameter['pool3_conv_r2_w']
-pool3_conv_r2_b = parameter['pool3_conv_r2_b']
+# pool3_conv_r2_w = parameter['pool3_conv_r2_w']
+# pool3_conv_r2_b = parameter['pool3_conv_r2_b']
 
-pool3_fc_r2_w = parameter['pool3_fc_r2_w']
-pool3_fc_r2_b = parameter['pool3_fc_r2_b']
+# pool3_fc_r2_w = parameter['pool3_fc_r2_w']
+# pool3_fc_r2_b = parameter['pool3_fc_r2_b']
 
-pool3_ms_saliency_r2_w = parameter['pool3_ms_saliency_r2_w']
-pool3_ms_saliency_r2_b = parameter['pool3_ms_saliency_r2_b']
+# pool3_ms_saliency_r2_w = parameter['pool3_ms_saliency_r2_w']
+# pool3_ms_saliency_r2_b = parameter['pool3_ms_saliency_r2_b']
 
 ############# ST fusion #############
 
-pool3_saliency_ST_w = parameter['pool4_saliency_ST_w']
-pool3_saliency_ST_b = parameter['pool4_saliency_ST_b']
+# pool3_saliency_ST_w = parameter['pool4_saliency_ST_w']
+# pool3_saliency_ST_b = parameter['pool4_saliency_ST_b']
 
 pool4_saliency_ST_w = parameter['pool4_saliency_ST_w']
 pool4_saliency_ST_b = parameter['pool4_saliency_ST_b']
@@ -253,9 +253,9 @@ pool4_conv_w = tf.Variable(np.transpose(pool4_conv_w, [2, 3, 1, 0]), name='pool4
 pool4_fc_w = tf.Variable(np.transpose(pool4_fc_w, [2, 3, 1, 0]), name='pool4_fc_w')
 pool4_ms_saliency_w = tf.Variable(np.transpose(pool4_ms_saliency_w, [2, 3, 1, 0]), name='pool4_ms_saliency_w')
 
-pool3_conv_w = tf.Variable(np.transpose(pool3_conv_w, [2, 3, 1, 0]), name='pool3_conv_w')
-pool3_fc_w = tf.Variable(np.transpose(pool3_fc_w, [2, 3, 1, 0]), name='pool3_fc_w')
-pool3_ms_saliency_w = tf.Variable(np.transpose(pool3_ms_saliency_w, [2, 3, 1, 0]), name='pool3_ms_saliency_w')
+# pool3_conv_w = tf.Variable(np.transpose(pool3_conv_w, [2, 3, 1, 0]), name='pool3_conv_w')
+# pool3_fc_w = tf.Variable(np.transpose(pool3_fc_w, [2, 3, 1, 0]), name='pool3_fc_w')
+# pool3_ms_saliency_w = tf.Variable(np.transpose(pool3_ms_saliency_w, [2, 3, 1, 0]), name='pool3_ms_saliency_w')
 
 ########### R2 weight ##############
 conv1_1_r2_w = tf.Variable(np.transpose(conv1_1_r2_w, [2, 3, 1, 0]), name='conv1_1_r2_w')
@@ -281,9 +281,9 @@ pool4_conv_r2_w = tf.Variable(np.transpose(pool4_conv_r2_w, [2, 3, 1, 0]), name=
 pool4_fc_r2_w = tf.Variable(np.transpose(pool4_fc_r2_w, [2, 3, 1, 0]), name='pool4_fc_r2_w')
 pool4_ms_saliency_r2_w = tf.Variable(np.transpose(pool4_ms_saliency_r2_w, [2, 3, 1, 0]), name='pool4_ms_saliency_r2_w')
 
-pool3_conv_r2_w = tf.Variable(np.transpose(pool3_conv_r2_w, [2, 3, 1, 0]), name='pool3_conv_r2_w')
-pool3_fc_r2_w = tf.Variable(np.transpose(pool3_fc_r2_w, [2, 3, 1, 0]), name='pool3_fc_r2_w')
-pool3_ms_saliency_r2_w = tf.Variable(np.transpose(pool3_ms_saliency_r2_w, [2, 3, 1, 0]), name='pool3_ms_saliency_r2_w')
+# pool3_conv_r2_w = tf.Variable(np.transpose(pool3_conv_r2_w, [2, 3, 1, 0]), name='pool3_conv_r2_w')
+# pool3_fc_r2_w = tf.Variable(np.transpose(pool3_fc_r2_w, [2, 3, 1, 0]), name='pool3_fc_r2_w')
+# pool3_ms_saliency_r2_w = tf.Variable(np.transpose(pool3_ms_saliency_r2_w, [2, 3, 1, 0]), name='pool3_ms_saliency_r2_w')
 ############ R1 bias ############
 conv1_1_b = tf.Variable(conv1_1_b, name='conv1_1_b')
 conv1_2_b = tf.Variable(conv1_2_b, name='conv1_2_b')
@@ -307,9 +307,9 @@ pool4_conv_b = tf.Variable(pool4_conv_b, name='pool4_conv_b')
 pool4_fc_b = tf.Variable(pool4_fc_b, name='pool4_fc_b')
 pool4_ms_saliency_b = tf.Variable(pool4_ms_saliency_b, name='pool4_ms_saliency_b')
 
-pool3_conv_b = tf.Variable(pool3_conv_b, name='pool3_conv_b')
-pool3_fc_b = tf.Variable(pool3_fc_b, name='pool3_fc_b')
-pool3_ms_saliency_b = tf.Variable(pool3_ms_saliency_b, name='pool3_ms_saliency_b')
+# pool3_conv_b = tf.Variable(pool3_conv_b, name='pool3_conv_b')
+# pool3_fc_b = tf.Variable(pool3_fc_b, name='pool3_fc_b')
+# pool3_ms_saliency_b = tf.Variable(pool3_ms_saliency_b, name='pool3_ms_saliency_b')
 
 ############ R2 bias ############
 conv1_1_r2_b = tf.Variable(conv1_1_r2_b, name='conv1_1_r2_b')
@@ -334,16 +334,16 @@ pool4_conv_r2_b = tf.Variable(pool4_conv_r2_b, name='pool4_conv_r2_b')
 pool4_fc_r2_b = tf.Variable(pool4_fc_r2_b, name='pool4_fc_r2_b')
 pool4_ms_saliency_r2_b = tf.Variable(pool4_ms_saliency_r2_b, name='pool4_ms_saliency_r2_b')
 
-pool3_conv_r2_b = tf.Variable(pool3_conv_r2_b, name='pool3_conv_r2_b')
-pool3_fc_r2_b = tf.Variable(pool3_fc_r2_b, name='pool3_fc_r2_b')
-pool3_ms_saliency_r2_b = tf.Variable(pool3_ms_saliency_r2_b, name='pool3_ms_saliency_r2_b')
+# pool3_conv_r2_b = tf.Variable(pool3_conv_r2_b, name='pool3_conv_r2_b')
+# pool3_fc_r2_b = tf.Variable(pool3_fc_r2_b, name='pool3_fc_r2_b')
+# pool3_ms_saliency_r2_b = tf.Variable(pool3_ms_saliency_r2_b, name='pool3_ms_saliency_r2_b')
 
 ########## ST fusion ##########
-pool3_saliency_ST_w = tf.Variable(np.transpose(pool3_saliency_ST_w, [2, 3, 1, 0]), name='pool3_saliency_ST_w')
+# pool3_saliency_ST_w = tf.Variable(np.transpose(pool3_saliency_ST_w, [2, 3, 1, 0]), name='pool3_saliency_ST_w')
 pool4_saliency_ST_w = tf.Variable(np.transpose(pool4_saliency_ST_w, [2, 3, 1, 0]), name='pool4_saliency_ST_w')
 fc8_saliency_ST_w = tf.Variable(np.transpose(fc8_saliency_ST_w, [2, 3, 1, 0]), name='fc8_saliency_ST_w')
 
-pool3_saliency_ST_b = tf.Variable(pool3_saliency_ST_b, name='pool3_saliency_ST_b')
+# pool3_saliency_ST_b = tf.Variable(pool3_saliency_ST_b, name='pool3_saliency_ST_b')
 pool4_saliency_ST_b = tf.Variable(pool4_saliency_ST_b, name='pool4_saliency_ST_b')
 fc8_saliency_ST_b = tf.Variable(fc8_saliency_ST_b, name='fc8_saliency_ST_b')
 
@@ -392,18 +392,17 @@ pool4_conv = tf.nn.dropout(tf.nn.relu(conv2d(pool4, pool4_conv_w) + pool4_conv_b
 pool4_fc = tf.nn.dropout(tf.nn.relu(conv2d(pool4_conv, pool4_fc_w) + pool4_fc_b), 0.5)
 pool4_ms_saliency = conv2d(pool4_fc, pool4_ms_saliency_w) + pool4_ms_saliency_b
 
-
-pool3_conv = tf.nn.dropout(tf.nn.relu(conv2d(pool3, pool3_conv_w) + pool3_conv_b), 0.5)
-pool3_fc = tf.nn.dropout(tf.nn.relu(conv2d(pool3_conv, pool3_fc_w) + pool3_fc_b), 0.5)
-pool3_ms_saliency = conv2d(pool3_fc, pool3_ms_saliency_w) + pool3_ms_saliency_b
+# pool3_conv = tf.nn.dropout(tf.nn.relu(conv2d(pool3, pool3_conv_w) + pool3_conv_b), 0.5)
+# pool3_fc = tf.nn.dropout(tf.nn.relu(conv2d(pool3_conv, pool3_fc_w) + pool3_fc_b), 0.5)
+# pool3_ms_saliency = conv2d(pool3_fc, pool3_ms_saliency_w) + pool3_ms_saliency_b
 
 # rnn_output_pool4 = rnn_cell(pool4_ms_saliency, 'pool4')
 # pool4_ms_saliency = tf.add(rnn_output_pool4, pool4_ms_saliency)
 
 up_pool4 = tf.image.resize_bilinear(pool4_ms_saliency, [128, 128])
-up_pool3 = tf.image.resize_bilinear(pool3_ms_saliency, [128, 128])
-final_saliency_r1 = tf.add(up_pool3, up_pool4)
-final_saliency_r1 = tf.sigmoid(tf.add(final_saliency_r1, up_fc8))
+# up_pool3 = tf.image.resize_bilinear(pool3_ms_saliency, [128, 128])
+# final_saliency_r1 = tf.add(up_pool3, up_pool4)
+final_saliency_r1 = tf.sigmoid(tf.add(up_pool4, up_fc8))
 
 ####### R2 compute ###########
 conv1_1_r2 = tf.nn.relu(conv2d(x_prior, conv1_1_r2_w) + conv1_1_r2_b)
@@ -439,15 +438,15 @@ pool4_conv_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool4_r2, pool4_conv_r2_w) + poo
 pool4_fc_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool4_conv_r2, pool4_fc_r2_w) + pool4_fc_r2_b), 0.5)
 pool4_ms_saliency_r2 = conv2d(pool4_fc_r2, pool4_ms_saliency_r2_w) + pool4_ms_saliency_r2_b
 
-pool3_conv_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool3_r2, pool3_conv_r2_w) + pool3_conv_r2_b), 0.5)
-pool3_fc_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool3_conv_r2, pool3_fc_r2_w) + pool3_fc_r2_b), 0.5)
-pool3_ms_saliency_r2 = conv2d(pool3_fc_r2, pool3_ms_saliency_r2_w) + pool3_ms_saliency_r2_b
+# pool3_conv_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool3_r2, pool3_conv_r2_w) + pool3_conv_r2_b), 0.5)
+# pool3_fc_r2 = tf.nn.dropout(tf.nn.relu(conv2d(pool3_conv_r2, pool3_fc_r2_w) + pool3_fc_r2_b), 0.5)
+# pool3_ms_saliency_r2 = conv2d(pool3_fc_r2, pool3_ms_saliency_r2_w) + pool3_ms_saliency_r2_b
 
 up_pool4_r2 = tf.image.resize_bilinear(pool4_ms_saliency_r2, [128, 128])
-up_pool3_r2 = tf.image.resize_bilinear(pool3_ms_saliency_r2, [128, 128])
+# up_pool3_r2 = tf.image.resize_bilinear(pool3_ms_saliency_r2, [128, 128])
 up_fc8_r2 = tf.image.resize_bilinear(fc8_r2, [128, 128])
-final_saliency_r2 = tf.add(up_pool3_r2, up_pool4_r2)
-final_saliency_r2 = tf.sigmoid(tf.add(final_saliency_r2, up_fc8_r2))
+# final_saliency_r2 = tf.add(up_pool3_r2, up_pool4_r2)
+final_saliency_r2 = tf.sigmoid(tf.add(up_pool4_r2, up_fc8_r2))
 
 
 ########## rnn fusion ############
@@ -463,7 +462,7 @@ final_saliency_r2 = tf.sigmoid(tf.add(final_saliency_r2, up_fc8_r2))
 # rnn_output2 = tf.squeeze(outputs2, axis=0)
 
 inputs = tf.expand_dims(tf.concat([up_pool4, up_pool4_r2, up_fc8, up_fc8_r2], axis=3), 0)
-cell = ConvLSTMCell([128, 128], 1, [3, 3])
+# cell = ConvLSTMCell([128, 128], 1, [3, 3])
 
 conv3D_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 3, 4, 1]),
                                       dtype=tf.float32, name='3D_conv_w')
@@ -472,24 +471,24 @@ C3D_outputs = tf.nn.conv3d(inputs, conv3D_w, strides=[1, 1, 1, 1, 1], padding='S
 
 # outputs_static, outputs_dynamic = rnn_cell(inputs, 'rnn')
 
-outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype, scope='rnn')
-rnn_output = tf.squeeze(outputs, axis=0)
+# outputs, state = tf.nn.dynamic_rnn(cell, inputs, dtype=inputs.dtype, scope='rnn')
+# rnn_output = tf.squeeze(outputs, axis=0)
 C3D_output = tf.squeeze(C3D_outputs, axis=0)
-up_rnn_output = tf.image.resize_bilinear(rnn_output, [size, size])
-up_C3D_output = tf.image.resize_bilinear(C3D_output, [size, size])
+# up_rnn_output = tf.image.resize_bilinear(rnn_output, [size, size])
+# up_C3D_output = tf.image.resize_bilinear(C3D_output, [size, size])
 # attention_static = tf.multiply(tf.add(up_pool4, up_fc8), outputs_static)
 # attention_dynamic = tf.multiply(tf.add(up_pool4_r2, up_fc8_r2), outputs_dynamic)
 ########## ST fusion #############
 pool4_saliency_cancat = tf.concat([pool4_ms_saliency, pool4_ms_saliency_r2], 3)
 pool4_saliency_ST = conv2d(pool4_saliency_cancat, pool4_saliency_ST_w) + pool4_saliency_ST_b
 
-pool3_saliency_cancat = tf.concat([pool3_ms_saliency, pool3_ms_saliency_r2], 3)
-pool3_saliency_ST = conv2d(pool3_saliency_cancat, pool3_saliency_ST_w) + pool3_saliency_ST_b
+# pool3_saliency_cancat = tf.concat([pool3_ms_saliency, pool3_ms_saliency_r2], 3)
+# pool3_saliency_ST = conv2d(pool3_saliency_cancat, pool3_saliency_ST_w) + pool3_saliency_ST_b
 
 fc8_cancat = tf.concat([fc8, fc8_r2], 3)
 fc8_saliency_ST = conv2d(fc8_cancat, fc8_saliency_ST_w) + fc8_saliency_ST_b
 
-pool3_saliency_ST_resize = tf.image.resize_bilinear(pool3_saliency_ST, [128, 128])
+# pool3_saliency_ST_resize = tf.image.resize_bilinear(pool3_saliency_ST, [128, 128])
 pool4_saliency_ST_resize = tf.image.resize_bilinear(pool4_saliency_ST, [128, 128])
 fc8_saliency_ST_resize = tf.image.resize_bilinear(fc8_saliency_ST, [128, 128])
 
@@ -497,23 +496,23 @@ fc8_saliency_ST_resize = tf.image.resize_bilinear(fc8_saliency_ST, [128, 128])
 # pool4_fc8_combine_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 1]), dtype=tf.float32, name='pool4_fc8_b')
 # pool4_fc8_concat = tf.concat([pool3_saliency_ST_resize, pool4_saliency_ST_resize, fc8_saliency_ST_resize], axis=3)
 # pool4_fc8_combine = conv2d(pool4_fc8_concat, pool4_fc8_combine_w) + pool4_fc8_combine_b
-pool4_fc8_combine = tf.add(pool3_saliency_ST_resize, pool4_saliency_ST_resize)
+# pool4_fc8_combine = tf.add(pool3_saliency_ST_resize, pool4_saliency_ST_resize)
 
-pool4_fc8_combine = tf.sigmoid(tf.add(pool4_fc8_combine, fc8_saliency_ST_resize))
+pool4_fc8_combine = tf.add(pool4_saliency_ST_resize, fc8_saliency_ST_resize)
 
-motion_cancat = tf.concat([pool4_fc8_combine, C3D_output, rnn_output], axis=3)
-attention_conv1_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 3, 256]), dtype=tf.float32, name='attention_conv1_w')
-attention_conv1_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 256]), dtype=tf.float32, name='attention_conv1_b')
-
-attention_conv2_w = tf.Variable(tf.truncated_normal(shape=[1, 1, 256, 3]), dtype=tf.float32, name='attention_conv2_w')
-attention_conv2_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 3]), dtype=tf.float32, name='attention_conv2_b')
-attention_first = tf.nn.dropout(tf.nn.relu(conv2d(motion_cancat, attention_conv1_w) + attention_conv1_b), 0.5)
-attention_second = tf.nn.softmax(conv2d(attention_first, attention_conv2_w) + attention_conv2_b)
-final_fusion = tf.multiply(motion_cancat, attention_second)
-
+# motion_cancat = tf.concat([pool4_fc8_combine, C3D_output, rnn_output], axis=3)
+# attention_conv1_w = tf.Variable(tf.truncated_normal(shape=[3, 3, 3, 256]), dtype=tf.float32, name='attention_conv1_w')
+# attention_conv1_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 256]), dtype=tf.float32, name='attention_conv1_b')
+#
+# attention_conv2_w = tf.Variable(tf.truncated_normal(shape=[1, 1, 256, 3]), dtype=tf.float32, name='attention_conv2_w')
+# attention_conv2_b = tf.Variable(tf.truncated_normal(shape=[1, 1, 1, 3]), dtype=tf.float32, name='attention_conv2_b')
+# attention_first = tf.nn.dropout(tf.nn.relu(conv2d(motion_cancat, attention_conv1_w) + attention_conv1_b), 0.5)
+# attention_second = tf.nn.softmax(conv2d(attention_first, attention_conv2_w) + attention_conv2_b)
+# final_fusion = tf.multiply(motion_cancat, attention_second)
+final_fusion = tf.add(pool4_fc8_combine, C3D_output)
 final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
-ave_num = tf.constant(3.0, dtype=tf.float32, shape=[4, 128, 128, 1])
-final_saliency = tf.div(final_saliency, ave_num)
+# ave_num = tf.constant(3.0, dtype=tf.float32, shape=[4, 128, 128, 1])
+# final_saliency = tf.div(final_saliency, ave_num)
 up_final_saliency = tf.image.resize_bilinear(final_saliency, [size, size])
 saver = tf.train.Saver()
 init = tf.initialize_all_variables()
