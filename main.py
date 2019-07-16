@@ -39,7 +39,7 @@ if __name__ == '__main__':
             if prior_type == 'prior':
                 # test dir
                 # FBMS
-                test_dir = '/home/ty/data/FBMS/FBMS_Testset2'
+                test_dir = '/home/ty/data/FBMS/FBMS_Testset'
                 test_prior_dir = '/home/ty/data/FBMS/FBMS_Testset_flow_prior'
                 list_file_path = '/home/ty/data/FBMS/FBMS_seq_file.txt'
                 # DAVIS
