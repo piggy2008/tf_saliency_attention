@@ -199,7 +199,7 @@ class VideoSailency(object):
         ########### ST fusion ############
         pool4_saliency_cancat = tf.concat([pool4_ms_saliency, pool4_ms_saliency_r2], 3, name='concat_pool4')
         pool4_saliency_ST = self.conv2d(pool4_saliency_cancat, [1, 1, 2, 1], 'pool4_saliency_ST')
-        up_pool4_ST = tf.image.resize_bilinear(pool4_saliency_ST, [self.crop_size, self.crop_size])
+        # up_pool4_ST = tf.image.resize_bilinear(pool4_saliency_ST, [self.crop_size, self.crop_size])
 
         # pool3_saliency_cancat = tf.concat([pool3_ms_saliency, pool3_ms_saliency_r2], 3, name='concat_pool3')
         # pool3_saliency_ST = self.conv2d(pool3_saliency_cancat, [1, 1, 2, 1], 'pool3_saliency_ST')
@@ -213,7 +213,7 @@ class VideoSailency(object):
         # pool4_fc8_combine = self.conv2d(pool4_fc8_concat, [1, 1, 3, 1], 'pool4_fc8')
         # pool4_fc8_combine = tf.add(pool3_saliency_ST, pool4_saliency_ST)
         pool4_fc8_combine = tf.add(pool4_saliency_ST, fc8_saliency_ST)
-        # up2_pool4_fc8_combine = tf.image.resize_bilinear(pool4_fc8_combine, [128, 128])
+        up2_pool4_fc8_combine = tf.image.resize_bilinear(pool4_fc8_combine, [128, 128])
 
         # up_pool4_fc8_combine = tf.add(up_pool3_ST, up_pool4_ST)
         # up_pool4_fc8_combine = tf.add(up_pool4_fc8_combine, up_fc8_ST)
@@ -237,7 +237,7 @@ class VideoSailency(object):
         # final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
         # ave_num = tf.constant(3.0, dtype=tf.float32, shape=[self.batch_size, self.crop_size, self.crop_size, 1])
         # final_saliency = tf.div(final_saliency, ave_num)
-        final_saliency = tf.add(pool4_fc8_combine, C3D_output)
+        final_saliency = tf.add(up2_pool4_fc8_combine, C3D_output)
         final_saliency = tf.image.resize_bilinear(final_saliency, [512, 512])
         # final_saliency = tf.reduce_sum(final_fusion, axis=3, keep_dims=True)
         self.final_saliency = tf.sigmoid(final_saliency)
