@@ -4,14 +4,14 @@ from PIL import Image
 from misc import check_mkdir, crf_refine, AvgMeter, cal_precision_recall_mae, cal_fmeasure
 
 # root = '/home/qub/data/saliency/davis/davis_test2'
-# root_inference = '/home/qub/data/davis/others/MSST'
+# root_inference = '/home/qub/data/davis/others/SCNN'
 # root = '/home/qub/data/saliency/davis/480p/'
 
-root_inference = 'results/result_rnn_crf_2019-07-16 17:31:35'
+root_inference = '/home/qub/code/tf_saliency_attention/results/result_rnn_crf_2019-07-17 22:14:51'
 root = '/home/qub/data/saliency/FBMS/FBMS_Testset2/'
 
 # root = '/home/qub/data/saliency/FBMS/FBMS_Testset/'
-name = 'ours_FBMS'
+name = 'STC_FBMS'
 # gt_root = '/home/qub/data/saliency/davis/GT'
 gt_root = '/home/qub/data/saliency/FBMS/GT_no_first'
 # gt_root = '/home/qub/data/saliency/FBMS/GT/'
@@ -22,6 +22,14 @@ mae_record = AvgMeter()
 results = {}
 
 # save_path = os.path.join(ckpt_path, exp_name, '(%s) %s_%s' % (exp_name, name, args['snapshot']))
+
+# folders =['bear','blackswan','bmx-bumps','bmx-trees','boat','breakdance','breakdance-flare','bus',
+#               'camel','car-roundabout','car-shadow','car-turn','cows','dance-jump','dance-twirl','dog',
+#               'dog-agility','drift-chicane','drift-straight','drift-turn','elephant','flamingo','goat','hike',
+#               'hockey','horsejump-high','horsejump-low','kite-surf','kite-walk','libby','lucia','mallard-fly',
+#               'mallard-water','motocross-bumps','motocross-jump','motorbike','paragliding','paragliding-launch',
+#               'parkour','rhino','rollerblade','scooter-black','scooter-gray','soapbox','soccerball','stroller','surf','swing',
+#               'tennis','train']
 # folders = ['blackswan','bmx-trees','breakdance', 'camel','car-roundabout','car-shadow','cows','dance-twirl','dog',
 #            'drift-chicane','drift-straight','goat',
 #              'horsejump-high','kite-surf','libby',
@@ -68,7 +76,7 @@ print ('test results:')
 print (results)
 
 # {'davis': {'mae': 0.041576569176772944, 'fmeasure': 0.8341383096984007}}
-# {'MSST_davis': {'fmeasure': 0.8401765686260317, 'mae': 0.04162005509084483}}
+# {'MSST_davis': {'fmeasure': 0.8175943834081874, 'mae': 0.04597473876855389}}
 # {'Amulet_davis': {'mae': 0.08374974551689243, 'fmeasure': 0.7234079968968813}}
 # {'CG_davis': {'fmeasure': 0.6278087775523111, 'mae': 0.09568971798828023}}
 # {'CS_davis': {'fmeasure': 0.387371123540425, 'mae': 0.11592338609834756}}
@@ -88,8 +96,8 @@ print (results)
 # {'WSS_davis': {'mae': 0.07330220691994715, 'fmeasure': 0.6755352024596707}}
 # {'PDB_davis': {'fmeasure': 0.8625471839500165, 'mae': 0.02943239025479776}}
 
-# {'ours_FBMS': {'mae': 0.08880904315479791, 'fmeasure': 0.8231423233605155}}
-# {'MSST_FBMS': {'fmeasure': 0.8126898801024736, 'mae': 0.08512593678113392}}
+# {'ours_FBMS': {'mae': 0.08512593678113392, 'fmeasure': 0.8126898801024736}}
+# {'MSST_FBMS': {'mae': 0.0868737797152738, 'fmeasure': 0.7979339523459194}}
 # {'Amulet_FBMS': {'mae': 0.11058736603477708, 'fmeasure': 0.7473186485664933}}
 # {'CG_FBMS': {'fmeasure': 0.6060423808431531, 'mae': 0.17209793795519282}}
 # {'CS_FBMS': {'mae': 0.17656805714883772, 'fmeasure': 0.42640692018722226}}
