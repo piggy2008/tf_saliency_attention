@@ -826,7 +826,8 @@ class VideoSailency(object):
             save_sal = saliency.astype('float')
             save_sal = MaxMinNormalization(save_sal, save_sal.max(), save_sal.min()) * 255.0
             save_sal = save_sal.astype('uint8')
-            save_img = Image.fromarray(save_sal[3, :h, :w, 0])
+            save_img = Image.fromarray(save_sal[3, :, :, 0])
+            save_img = save_img.resize([w, h])
 
             image_path = os.path.join(save_path, images_path[-1] + '.png')
             print ('process:', image_path)
