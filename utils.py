@@ -36,6 +36,19 @@ def preprocess(image, prior, input_shape=512):
     input[:w, :h, 3] = prior_arr
     return input[np.newaxis, ...], input[np.newaxis, :, :, :3]
 
+def preprocess3(image, prior, input_shape=512):
+    x = np.array(image, dtype=np.float32)
+    x = x[:, :, ::-1]
+    mean = (104.00699, 116.66877, 122.67892)
+    mean = np.array(mean, dtype=np.float32)
+    x = (x - mean)
+    # w, h, _ = x.shape
+    prior_arr = np.array(prior, dtype=np.float32)
+    input = np.zeros([input_shape, input_shape, 4], dtype=np.float32)
+    input[:, :, :3] = x
+    input[:, :, 3] = prior_arr
+    return input[np.newaxis, ...], input[np.newaxis, :, :, :3]
+
 def preprocess2(image, input_shape=512):
     x = np.array(image, dtype=np.float32)
     x = x[:, :, ::-1]

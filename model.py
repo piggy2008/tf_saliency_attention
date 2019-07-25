@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from image_data_loader import ImageData, ImageAndPriorData, ImageAndPriorSeqData, ImageAndFlowSeqData
 import os
 import time
-from utils import preprocess, preprocess2
+from utils import preprocess, preprocess2, preprocess3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from utils import MaxMinNormalization
 
@@ -30,6 +30,14 @@ def resize_image_prior(image, prior, max_shape=510):
         else:
             image = image.resize([int(float(max_shape) / h * w), max_shape])
             prior = prior.resize([int(float(max_shape) / h * w), max_shape])
+
+    return image, prior
+
+def resize_image_prior2(image, prior, max_shape=512):
+    w, h = image.size
+
+    image = image.resize([512, 512])
+    prior = prior.resize([512, 512])
 
     return image, prior
 
@@ -787,9 +795,10 @@ class VideoSailency(object):
             for i, image_name in enumerate(images_path):
                 image = Image.open(os.path.join(test_dir, image_name + '.jpg'))
                 prior = Image.open(os.path.join(test_prior_dir, image_name + '.png'))
-                image, prior = resize_image_prior(image, prior)
                 w, h = image.size
-                input_prior, input = preprocess(image, prior)
+                image, prior = resize_image_prior2(image, prior)
+
+                input_prior, input = preprocess3(image, prior)
 
                 batch_x_no_prior[i] = input
                 batch_x[i] = input_prior
